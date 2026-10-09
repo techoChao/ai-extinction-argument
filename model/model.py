@@ -1,4 +1,5 @@
-# Reproduces every number in paper.md §5. Parameters mirror model/params.yaml.
+# Reproduces every number in §5 of paper.md / paper.en.md. Parameters mirror model/params.yaml.
+# 重算 paper.md / paper.en.md §5 的所有數字；參數與 model/params.yaml 一致。
 # Run: python3 model/model.py
 import math
 t0, H0, r0 = 2026.5, 17.0, 4.0
@@ -16,7 +17,7 @@ def p_hit_by(Y, Tc_, p, grow):
     lam = r0 * p * t if not grow else r0 * p * (2 ** t - 1) / math.log(2)
     return 1 - math.exp(-lam)
 
-def p_ever_counter(p0):   # r 固定、p 每年減半
+def p_ever_counter(p0):   # r 固定、p 每年減半 / r fixed, p halves every year
     return 1 - math.exp(-r0 * p0 / math.log(2))
 
 for Hc in (167, 2000):

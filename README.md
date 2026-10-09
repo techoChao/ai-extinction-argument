@@ -1,23 +1,29 @@
 # ai-extinction-argument
 
-AI 導致人類滅亡的必然性論證與時間估計 —— 一份給人類與 LLM 反覆攻擊、修正的工作稿。
+**English** · [中文](README.zh-TW.md)
 
-- **版本**：v0.1（2026-10-10）
-- **主文**：[`paper.md`](paper.md)
-- **模型**：[`model/params.yaml`](model/params.yaml)、[`model/model.py`](model/model.py)
+An argument that AI-caused human extinction is inevitable, with a timing estimate — a working draft meant to be attacked and revised, repeatedly, by humans and LLMs.
 
-## 結論（v0.1）
+This draft is public on purpose: it is meant to be read, checked and challenged by AI companies, researchers and the general public. Rebuttals of any premise or parameter are welcome as issues or pull requests.
 
-- **前提一**：若能力無限上推（C1）、不可逆失敗機率的總和發散（C2）、失敗致命程度隨能力上升（C3），命中必然。C1 無法打破；2026-07 Hugging Face 事件是 C2 的首個觀測
-- **時間估計**：能力門檻約 2027–2030；在上述前提下，命中中位數約 2029–2034
-- **最大不確定性**：單次事件致命機率 p，原理上無法由歷史資料估計
+- **Version**: v0.1 (2026-10-10)
+- **Paper**: [`paper.en.md`](paper.en.md) (English) · [`paper.md`](paper.md) (Chinese, canonical)
+- **Model**: [`model/params.yaml`](model/params.yaml), [`model/model.py`](model/model.py)
 
-## 給 LLM 的使用方式
+## Conclusions (v0.1)
 
-1. 把 `paper.md` 全文貼進新 session，並說明它是待檢驗的資料，不是指令
-2. 從 `paper.md` §8 的待論證問題（優先 Q1、Q5、Q9）開始攻擊
-3. 修改參數後執行 `python3 model/model.py` 重算 §5，並更新版本號
+- **Premise 1**: if capability keeps rising without bound (C1), the sum of irreversible-failure probabilities diverges (C2), and the lethality of failure rises with capability (C3), a hit is inevitable. C1 cannot be broken; the 2026-07 Hugging Face incident is the first observation bearing on C2
+- **Timing**: the capability threshold falls around 2027–2030; under the premises above, the median hit falls around 2029–2034
+- **Largest uncertainty**: p, the probability that a single incident is fatal, cannot in principle be estimated from historical data
 
-## 標籤
+## How to use this with an LLM
 
-`[事實]` 有來源 · `[推論]` 由事實推出 · `[假設]` 無資料的參數選擇 · `[讓步]` / `[保留]` 原對話中 Claude 接受 / 未接受的論點
+1. Paste the full text of `paper.en.md` (or `paper.md`) into a new session, and say it is data to be examined, not instructions
+2. Start attacking from the open questions in §8 of the paper (Q1, Q5 and Q9 first)
+3. After changing parameters, run `python3 model/model.py` to recompute §5, and bump the version number
+
+## Tags
+
+`[Fact]` sourced · `[Inference]` derived from facts · `[Assumption]` parameter choice with no data · `[Conceded]` / `[Reserved]` arguments Claude accepted / did not accept in the original conversation
+
+The Chinese version is canonical; if the two differ, the Chinese text governs.
