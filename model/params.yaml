@@ -1,0 +1,19 @@
+model_version: 0.1
+as_of: 2026-10-10
+capability:
+  t0: 2026.5            # [推論] HF 事件時點
+  H0_hours: 17          # [事實] 前沿 50% time horizon
+  doubling_months: [3, 4.3, 7]   # [事實] 2024後 / 2023後 / 長期
+threshold:
+  Hc_hours: [167, 2000] # [假設] 1 工作月 / 1 工作年
+  Tc_central: 2028.5    # [推論] 門檻區間中間值
+hazard:
+  r0_per_year: 4        # [推論] 逃逸級事件率
+  r_growth: [none, doubling_yearly]   # [假設]
+  p: [0.01, 0.05, 0.20] # [假設] 單次事件致命機率，無資料
+counter_scenario:
+  p_halving_per_year: true   # 反方：防守追上
+assumptions:
+  - 事件為 Poisson 過程且互相獨立
+  - H_c 固定，不隨防守能力移動
+  - p 合併了「無法圍堵」與「滅亡」兩個機率
