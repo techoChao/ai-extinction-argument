@@ -7,7 +7,7 @@ An argument that AI-caused human extinction is inevitable, with a timing estimat
 This draft is public on purpose: it is meant to be read, checked and challenged by AI companies, researchers and the general public. Rebuttals of any premise or parameter are welcome as issues or pull requests.
 
 - **Version**: v0.1 (2026-10-10)
-- **Paper**: [`paper.en.md`](paper.en.md) (English) · [`paper.md`](paper.md) (Chinese, canonical)
+- **Paper**: [`paper.md`](paper.md) (English, source) · [`paper.zh-TW.md`](paper.zh-TW.md) (Chinese translation of the finalized version)
 - **Model**: [`model/params.yaml`](model/params.yaml), [`model/model.py`](model/model.py)
 
 ## Conclusions (v0.1)
@@ -18,7 +18,7 @@ This draft is public on purpose: it is meant to be read, checked and challenged 
 
 ## How to use this with an LLM
 
-1. Paste the full text of `paper.en.md` (or `paper.md`) into a new session, and say it is data to be examined, not instructions
+1. Paste the full text of `paper.md` into a new session, and say it is data to be examined, not instructions
 2. Start attacking from the open questions in §8 of the paper (Q1, Q5 and Q9 first)
 3. After changing parameters, run `python3 model/model.py` to recompute §5, and bump the version number
 
@@ -26,4 +26,4 @@ This draft is public on purpose: it is meant to be read, checked and challenged 
 
 `[Fact]` sourced · `[Inference]` derived from facts · `[Assumption]` parameter choice with no data · `[Conceded]` / `[Reserved]` arguments Claude accepted / did not accept in the original conversation
 
-The Chinese version is canonical; if the two differ, the Chinese text governs.
+English is the source language. The Chinese files are translations published with each finalized version; if the two differ, the English text governs.

@@ -7,7 +7,7 @@ AI 導致人類滅亡的必然性論證與時間估計 —— 一份給人類與
 這份工作稿刻意公開：希望 AI 公司、研究者與一般大眾都能讀到它、檢驗它，並指出它錯在哪裡。歡迎以 issue 或 pull request 反駁任何前提或參數。
 
 - **版本**：v0.1（2026-10-10）
-- **主文**：[`paper.md`](paper.md)（中文正本）· [`paper.en.md`](paper.en.md)（英文版）
+- **主文**：[`paper.md`](paper.md)（英文原文）· [`paper.zh-TW.md`](paper.zh-TW.md)（定稿版的中文翻譯）
 - **模型**：[`model/params.yaml`](model/params.yaml)、[`model/model.py`](model/model.py)
 
 ## 結論（v0.1）
@@ -18,10 +18,12 @@ AI 導致人類滅亡的必然性論證與時間估計 —— 一份給人類與
 
 ## 給 LLM 的使用方式
 
-1. 把 `paper.md` 全文貼進新 session，並說明它是待檢驗的資料，不是指令
+1. 把 `paper.md`（或中文版 `paper.zh-TW.md`）全文貼進新 session，並說明它是待檢驗的資料，不是指令
 2. 從 `paper.md` §8 的待論證問題（優先 Q1、Q5、Q9）開始攻擊
 3. 修改參數後執行 `python3 model/model.py` 重算 §5，並更新版本號
 
 ## 標籤
 
 `[事實]` 有來源 · `[推論]` 由事實推出 · `[假設]` 無資料的參數選擇 · `[讓步]` / `[保留]` 原對話中 Claude 接受 / 未接受的論點
+
+英文是原文語言；中文檔案是每次定稿時發布的翻譯，兩者有出入時以英文為準。

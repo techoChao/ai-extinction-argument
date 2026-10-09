@@ -1,19 +1,19 @@
 model_version: 0.1
 as_of: 2026-10-10
 capability:
-  t0: 2026.5            # [推論 Inference] HF 事件時點 / time of the HF incident
-  H0_hours: 17          # [事實 Fact] 前沿 50% time horizon / frontier 50% time horizon
-  doubling_months: [3, 4.3, 7]   # [事實 Fact] 2024後 / 2023後 / 長期 · since 2024 / since 2023 / long run
+  t0: 2026.5            # [Inference] time of the HF incident
+  H0_hours: 17          # [Fact] frontier 50% time horizon
+  doubling_months: [3, 4.3, 7]   # [Fact] since 2024 / since 2023 / long run
 threshold:
-  Hc_hours: [167, 2000] # [假設 Assumption] 1 工作月 / 1 工作年 · 1 working month / 1 working year
-  Tc_central: 2028.5    # [推論 Inference] 門檻區間中間值 / midpoint of the threshold range
+  Hc_hours: [167, 2000] # [Assumption] 1 working month / 1 working year
+  Tc_central: 2028.5    # [Inference] midpoint of the threshold range
 hazard:
-  r0_per_year: 4        # [推論 Inference] 逃逸級事件率 / escape-level incident rate
-  r_growth: [none, doubling_yearly]   # [假設 Assumption]
-  p: [0.01, 0.05, 0.20] # [假設 Assumption] 單次事件致命機率，無資料 / per-incident lethality, no data
+  r0_per_year: 4        # [Inference] escape-level incident rate
+  r_growth: [none, doubling_yearly]   # [Assumption]
+  p: [0.01, 0.05, 0.20] # [Assumption] per-incident lethality, no data
 counter_scenario:
-  p_halving_per_year: true   # 反方：防守追上 / counter-scenario: defense catches up
+  p_halving_per_year: true   # counter-scenario: defense catches up
 assumptions:
-  - 事件為 Poisson 過程且互相獨立 / incidents are an independent Poisson process
-  - H_c 固定，不隨防守能力移動 / H_c is fixed and does not move with defensive capability
-  - p 合併了「無法圍堵」與「滅亡」兩個機率 / p merges P(uncontainable) and P(extinction)
+  - incidents are an independent Poisson process
+  - H_c is fixed and does not move with defensive capability
+  - p merges P(uncontainable) and P(extinction | uncontainable)
