@@ -90,7 +90,7 @@ All source files are written in **English only**: `paper.md`, `README.md`, `mode
 | strict §1 root event (meets both legs: unauthorized exit and third-party intrusion) | 嚴格 §1 根本事件 |
 | cluster (§7: one root cause's escape-level activity, arriving as one event) | 群集 |
 | sub-incident (one of the m facets in a cluster) | 子事件 |
-| visible loss (a disclosed contained cluster, or an uncontainable but non-fatal one) | 可見損失 |
+| visible loss (a detected and disclosed contained cluster, or an uncontainable but non-fatal one; v0.3) | 可見損失 |
 | binding measure (a binding national or multi-actor rule that moves restraint R) | 約束性措施 |
 | scenario S0, S1, S1-cal, S2, S3 (labels kept as in English) | 情境 S0、S1、S1-cal、S2、S3（代號保留英文） |
 | headline scenario S1 | 主情境 S1 |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Monte Carlo timing model v0.2: competing hazards with explicit human-nature
+"""Monte Carlo timing model v0.3: competing hazards with explicit human-nature
 parameters, for AI-caused human extinction or permanent loss of humanity's
 collective self-determination.
 
@@ -20,7 +20,9 @@ kept for directly measured constants; a sampled prior is [Inference] when it is 
 distribution read from named analogues and [Assumption] when no data support it.
 Facts marked [unverified] or [not fetched] were not confirmed at a primary source.
 
-Provenance: written 2026-10-10 after a 134-agent review of paper v0.1. Review
+Provenance: written 2026-10-10 after a 134-agent review of paper v0.1 (v0.2);
+v0.3 (same day) applies pi_det to public visible losses and fixes reporting
+issues left open at v0.2 (DESIGN_NOTES, last entry). Review
 finding ids such as F07 refer to that review; REVIEW_FINDINGS below (printed in
 block 11 and mirrored in params.yaml) gives each id's title, whether it survived
 adversarial verification, and is the public index for those ids. The v0.1 closed
@@ -120,7 +122,10 @@ Equations (the symbols are printed again in output block 1b)
 (M9) Competing risks, exact on each interval: S' = S exp(-(h_E1 + s) dt);
      P(E1) += h_E1 (S - S')/(h_E1 + s); the same for each channel and safe.
 (M10) Visible losses (sampled on the path): a Poisson process of rate
-     nu = r_root [q_v (1 - u_cl) + (u_cl - p_cl)]; each interval draws
+     nu = r_root [pi_det q_v (1 - u_cl) + (u_cl - p_cl)] (a contained cluster
+     becomes public only if the lab detects it, pi_det, and it is disclosed,
+     q_v, which is conditional on detection; an uncontainable but non-fatal
+     cluster is visible without either); each interval draws
      K ~ Poisson(nu dt) by inverting one uniform U1, all K events at the
      interval midpoint. Each is tier 2 (mass-casualty or major loss) with
      probability q2, else tier 1. Tier 1: Sal += 1 after the dwell delay and a
@@ -160,7 +165,7 @@ NORMAL = statistics.NormalDist()
 # only warns when a name below is missing from it.
 # Regenerate the mirror block with: python3 model/mc.py --emit-yaml
 
-MC_VERSION = '0.2'
+MC_VERSION = '0.3'
 AS_OF = '2026-10-10'
 DEFAULT_SEED = 20261010
 N_MAIN_DEFAULT = 5000      # S1, S2, S3 draws
@@ -483,8 +488,8 @@ def _p(name, meaning, prior, tag, hn, rationale, **overrides):
 
 # --- Sampled parameters. S1 priors; overrides per scenario. -------------------------
 # Override keys: S0 (v0.1 regression; e1 and g are set per cell, see S0_CELLS),
-# S1cal (outside-view lethality), S1side (the higher-hazard side-channel priors used before they were
-# re-anchored to their cited ranges; lam_conc's upper end is a judgement, see its rationale), S2 (pessimistic),
+# S1cal (outside-view lethality), S1side (the former, higher-hazard side-channel priors; S1 replaced them by
+# priors anchored to cited ranges, except lam_conc's upper end, a judgement, see its rationale), S2 (pessimistic),
 # S3 (optimistic).
 # Rationales name their sources by key (see SOURCES); review F-ids resolve in REVIEW_FINDINGS.
 PARAMS = [
@@ -625,9 +630,12 @@ PARAMS = [
     # [Assumption] L_open
     _p('L_open', "years by which misusers' capability lags the closed frontier",
        UNIF(0.25, 1.0), '[Assumption]', False,
-       'open-weight models trail the closed frontier by months (Epoch ~14 months [unverified]); HF\'s defenders '
-       'used open-weight GLM-5.2 while the attacker ran a pre-release internal model; no measurement maps the '
-       'lag to misuse capability (sources: reuters_glm, hf_timeline)'),
+       'open-weight models trail the closed frontier by months; one estimate (Epoch, ~14 months [unverified]) '
+       'lies above this prior\'s upper end of 12 months, so the prior assumes that misusers reach a given '
+       'capability sooner than open weights do (through API access or leaked or stolen weights), an assumption '
+       'with no measurement behind it; HF\'s defenders used open-weight GLM-5.2 while the attacker ran a '
+       'pre-release internal model; no measurement maps the lag to misuse capability '
+       '(sources: reuters_glm, hf_timeline)'),
     # [Assumption] phi_mis
     _p('phi_mis', 'P(E2 | E1 via deliberate misuse)',
        BETA(1.0, 3.0), '[Assumption]', False,
@@ -674,8 +682,10 @@ PARAMS = [
        UNIF(0.0, LN2), '[Assumption]', True,
        'racing is the historical default (Szilard petition, Biopreparat, the 2023 pause letter); but the 2026 '
        'root events came from evaluation/RL programs with weakened safeguards, not deployed agents (no '
-       'comparable case in ~481M Anthropic production transcripts), and the review\'s grounded prior put '
-       'half its mass at 0 (F19) (sources: szilard, biopreparat, pause_letter_2023, anthropic_incidents)',
+       'comparable case in ~481M Anthropic production transcripts). The review\'s grounded prior put half its '
+       'mass at g = 0 and half on U(0, 1) (F19, mean 0.25); this prior does not follow it: it has no point mass at '
+       '0 (P(g < 0.1) = 14%, mean 0.35), a judgement that racing keeps the rate growing, and S3\'s U(0, 0.2) is '
+       'the low-growth case (sources: szilard, biopreparat, pause_letter_2023, anthropic_incidents)',
        S2=PT(LN2), S3=UNIF(0.0, 0.2)),
     # [Assumption] r_max
     _p('r_max', 'cap on the root-cause cluster rate (per year) = programs running frontier agents '
@@ -783,10 +793,14 @@ PARAMS = [
     # [Inference] R_max
     _p('R_max', "cap on the fraction of frontier activity any regime removes ('partial')",
        BETA(5.0, 2.0), '[Inference]', True,
-       'races have usually continued; proactive halts (Montreal, Protocol IV, the GoF pause) involved few actors '
-       'and no hot race (review F14, which claimed no raced technology was ever halted, was refuted); nuclear and '
-       "aviation regimes regulate continuing activity; GovAI reads Anthropic's RSP v3 as having dropped its pause "
-       'commitment (sources: montreal, blinding_lasers, gof_pause, ptbt, boeing_stats, rsp_v3, govai_rsp)',
+       'binding regimes have mostly removed part of an activity, not all of it: the PTBT banned only '
+       'atmospheric, space and underwater tests, the GoF pause exempted 7 of 18 projects, and nuclear and '
+       'aviation regimes regulate a continuing activity; a few regimes removed a whole technology before any '
+       'mass-casualty event (Montreal for CFCs, Protocol IV for blinding lasers), so the prior keeps mass near 1 '
+       '(P(R_max > 0.9) ~ 11%); these are among the counterexamples on which review F14 (no raced technology was '
+       'ever halted before a visible mass-casualty event) was refuted; GovAI reads Anthropic\'s RSP v3 as having '
+       'dropped its pause commitment (sources: ptbt, gof_p3co, boeing_stats, montreal, blinding_lasers, gof_pause, '
+       'rsp_v3, govai_rsp)',
        S0=PT(0.0), S2=BETA(2.0, 5.0), S3=BETA(6.0, 1.5)),
     # [Inference] tau_h
     _p('tau_h', 'half-life (years) of binding restraint',
@@ -1017,8 +1031,9 @@ SCENARIOS = [
      'stream': 'S1', 'n': 'main', 'switches': {}},
     {'key': 'S1-cal', 'label': 'S1 with outside-view lethality e1 ~ LogU(1e-4, 1e-2)',
      'override_key': 'S1cal', 'stream': 'S1', 'n': 'var', 'switches': {}},
-    {'key': 'S1-side-high', 'label': 'S1 with the higher-hazard side-channel priors used before they were '
-                                     'anchored to their cited ranges: lam_mis ~ LogU(0.0005, 0.02), lam_conc ~ '
+    {'key': 'S1-side-high', 'label': 'S1 with the former, higher-hazard side-channel priors (S1 replaced them by '
+                                     'priors anchored to cited ranges, except the lam_conc upper end 1/80 per yr, '
+                                     'which is a judgement): lam_mis ~ LogU(0.0005, 0.02), lam_conc ~ '
                                      'LogU(0.001, 0.03), phi_mis ~ Beta(2, 2), L_conc ~ U(0, 1.76) (the former '
                                      'lock-in multiple ratio_conc ~ LogU(1, 30) read at the median d)',
      'override_key': 'S1side', 'stream': 'S1', 'n': 'var2', 'switches': {}},
@@ -1074,9 +1089,14 @@ S3_VARIANTS = [
 # as a reference row (the measured 2026 incident rate, AI nature; not a racing parameter).
 SIGN_PARAMS = ['r0', 'g', 'r_max', 'w', 'race_persistence', 'lam_conc']
 SIGN_RACING = ['g', 'r_max', 'w', 'race_persistence']
-# Human-nature effect sweep (block 11): |dP(E1)| below this at 2035, 2050 and 2100 = 'inert in this model'.
+# Human-nature effect sweep (block 11): a parameter is 'inert in this model' only if |dP(E1)| + 2 SE is below
+# INERT_PP at 2035, 2050 and 2100; 'small' if |dP(E1)| is below INERT_PP at every horizon but it is not inert
+# (the point estimate is within 2 SE of the line). The OAT list of block 9 applies the same rule to its swing.
 INERT_PP = 0.01
 HNE_YEARS = (2035, 2050, 2100)
+# Parameters that act only on E2 (strict extinction): they leave every E1 quantity unchanged by construction, so
+# a zero E1 effect says nothing about them; block 9 labels them 'E2 only', never 'inert'.
+E2_ONLY = ('phi_acc_max', 'delta_e2', 'phi_mis', 'phi_conc')
 
 # S0 cells (paper 5.2 / 5.3): p x rate form at T_c = 2028.5, r0 = 4.
 # paper_53: the published 5.3 cells (percent; "100" means above 99.5%); paper_52: 5.2 medians;
@@ -1234,8 +1254,10 @@ MODEL_SUMMARY = [
     'becomes strict extinction once its raw capability passes the level set by phi_acc, also after the E1 event, so '
     'P(E2 by Y) = phi_acc(x(Y)) P(E1 via accident by Y) + phi_mis P(E1 via misuse by Y) + phi_conc P(E1 via '
     'concentration by Y), a subset of E1.',
-    'Visible losses: a Poisson process at rate r_root [q_v (1 - u_cl) + (u_cl - p_cl)] (K ~ Poisson(rate dt) per '
-    'interval); each is tier 2 (mass-casualty/major loss) with P = q2 = q2_max G(x_def - x_c + delta_2), else tier 1 '
+    'Visible losses: a Poisson process at rate r_root [pi_det q_v (1 - u_cl) + (u_cl - p_cl)] (a contained cluster '
+    'is public only if detected, pi_det, and disclosed, q_v; an uncontainable non-fatal one is visible regardless; '
+    'K ~ Poisson(rate dt) per interval); each is tier 2 (mass-casualty/major loss) with P = q2 = q2_max '
+    'G(x_def - x_c + delta_2), else tier 1 '
     '(HF class).',
     'Tier 1: Sal += 1 (after the dwell delay), unilateral pause with P = pi_uni. Tier 2: Sal += m2, Sal2 += 1, '
     'unilateral draw, binding jump R += (1 - (1 - e)^m2)(R_max - R) after L_nat years (the HF jump, size e, is '
@@ -1246,7 +1268,8 @@ MODEL_SUMMARY = [
     'Output: prior-predictive means over the parameter draws; nothing is conditioned on data except through '
     'the priors and the 2026-10 initial state.',
 ]
-# Design notes for the fix round of 2026-10-10 (mirrored in params.yaml; each answers a verifier issue).
+# Design notes for the fix rounds of 2026-10-10 (v0.2, and v0.3 last; mirrored in params.yaml; each answers a
+# verifier issue).
 DESIGN_NOTES = [
     'Units: r0 and r_max are root-cause cluster rates (no division by the cluster size m); e1 and q0 are per '
     'effective sub-incident and are compounded over m_eff per cluster.',
@@ -1282,42 +1305,74 @@ DESIGN_NOTES = [
     'w1 keeps the tag [Assumption]; its prior is U(0.2, 1) under the saturating response (one undecayed '
     'HF-class loss raises the safety share x1.2-1.8 at the share_mult_max median, the review\'s proposed step '
     'was x1.5-2); no post-HF change in the share has been measured.',
+    'v0.3: a contained cluster becomes a public visible loss at the rate r_root pi_det q_v (1 - u_cl), because q0 '
+    'is conditional on detection, as the learning clock already treated it; v0.2 omitted pi_det there, which '
+    'overstated public visible losses by 1/pi_det. A human-nature parameter is "inert in this model" only if '
+    '|effect| + 2 SE < 1 pp at every horizon (v0.2 used the point estimate alone); one below 1 pp but within 2 SE '
+    'of it is "small, not shown inert"; the four E2-only parameters (phi_acc_max, delta_e2, phi_mis, phi_conc) are '
+    'labelled E2 only instead of inert. No prior changed in v0.3; the rationales of g, L_open and R_max were '
+    'reworded so that none cites a value its prior excludes or a refuted finding as established.',
 ]
 
 # Measured q01 -> q99 effects of the human-nature parameters on P(E1 by 2035 / 2050 / 2100), in percentage
-# points (common random numbers on the first S1 draws; block 11, mirrored in params.yaml human_nature: effect).
-# Recorded from the default run (seed DEFAULT_SEED; N_HNE_DEFAULT draws per side, N_SIGN_DEFAULT for the
-# parameters in the sign check). Each full run recomputes them and warns in block 11 if this record is stale.
+# points, and their paired standard errors: name: ((d2035, d2050, d2100), (se2035, se2050, se2100)) (common random
+# numbers on the first S1 draws; block 11, mirrored in params.yaml human_nature: effect). Recorded from the default
+# run (seed DEFAULT_SEED; N_HNE_DEFAULT draws per side, N_SIGN_DEFAULT for the parameters in the sign check). Each
+# full run recomputes them and warns in block 11 if this record is stale.
 HN_EFFECT_RECORD = {
-    'a': (-6.68, -4.48, -3.33), 'g': (6.86, 7.75, 7.19), 'r_max': (3.99, 7.44, 8.39), 'q0': (-5.71, -5.59, -5.55),
-    'eta': (-19.15, -19.59, -17.77), 'f_min': (4.99, 10.41, 13.96), 'w': (1.49, 1.54, 1.15),
-    'safety_share': (-8.36, -8.89, -9.07), 'w1': (-1.17, -1.10, -0.92), 'share_mult_max': (-2.83, -3.15, -3.38),
-    's_effort_max': (-0.27, -1.19, -2.92), 'm2': (-2.10, -1.53, -1.56), 'L_nat': (6.10, 2.69, 2.08),
-    'e': (-7.29, -6.83, -6.55), 'R_max': (-7.16, -8.40, -9.49), 'tau_h': (-1.31, -1.93, -1.92),
-    'beta_p': (-3.75, -4.70, -5.12), 'gamma_d': (-0.47, -0.40, -0.32), 'h_sal': (-0.31, -0.69, -0.71),
-    'pi_uni': (-0.31, -0.54, -0.37), 'e_uni': (-0.33, -0.68, -0.68), 'h_uni_weeks': (0.16, -0.11, -0.15),
-    'race_persistence': (0.51, 0.50, 0.41), 'c_cap': (-0.91, -1.08, -1.34), 'sal2_sat': (-0.32, -0.82, -1.20),
-    'L_int': (3.23, 4.39, 5.12), 'c_cov': (-1.30, -1.92, -1.64), 'D_coord': (-1.97, -3.39, -4.02),
-    's_regime': (-1.88, -5.44, -11.69), 's_halt': (-0.40, -1.85, -5.41), 'kappa_s': (-0.16, -0.62, -1.63),
-    'lam_mis': (0.71, 1.83, 3.57), 'lam_conc': (1.29, 6.30, 13.20), 'c_conc': (-0.15, -0.97, -2.26),
-    'p_bind_first': (-0.95, -0.33, -0.19),
+    'a': ((-6.37, -4.46, -3.11), (1.20, 1.00, 0.79)),
+    'g': ((7.08, 8.04, 7.41), (0.69, 0.69, 0.62)),
+    'r_max': ((3.95, 7.30, 8.24), (0.44, 0.66, 0.64)),
+    'q0': ((-5.75, -5.55, -5.21), (1.11, 0.92, 0.71)),
+    'eta': ((-18.36, -18.69, -16.76), (2.38, 1.99, 1.75)),
+    'f_min': ((5.34, 10.52, 13.98), (1.26, 2.02, 2.19)),
+    'w': ((1.50, 1.52, 1.14), (0.21, 0.16, 0.12)),
+    'safety_share': ((-8.29, -8.50, -8.68), (1.44, 1.14, 1.01)),
+    'w1': ((-1.46, -1.14, -0.95), (0.26, 0.19, 0.16)),
+    'share_mult_max': ((-2.93, -3.12, -3.25), (0.58, 0.44, 0.42)),
+    's_effort_max': ((-0.26, -1.20, -2.91), (0.06, 0.25, 0.47)),
+    'm2': ((-2.03, -1.64, -1.63), (0.42, 0.23, 0.22)),
+    'L_nat': ((5.70, 2.89, 2.21), (1.07, 0.52, 0.37)),
+    'e': ((-7.32, -6.49, -6.40), (1.20, 0.89, 0.70)),
+    'R_max': ((-6.60, -7.92, -9.06), (1.04, 1.03, 1.03)),
+    'tau_h': ((-1.64, -1.99, -2.07), (0.39, 0.39, 0.29)),
+    'beta_p': ((-3.44, -4.30, -4.78), (0.55, 0.58, 0.51)),
+    'gamma_d': ((-0.42, -0.30, -0.23), (0.31, 0.13, 0.10)),
+    'h_sal': ((-0.35, -0.70, -0.82), (0.09, 0.18, 0.15)),
+    'pi_uni': ((-0.05, -0.33, -0.35), (0.23, 0.09, 0.09)),
+    'e_uni': ((-0.05, -0.59, -0.56), (0.29, 0.21, 0.17)),
+    'h_uni_weeks': ((0.30, -0.13, -0.08), (0.30, 0.14, 0.09)),
+    'race_persistence': ((0.52, 0.53, 0.44), (0.13, 0.10, 0.08)),
+    'c_cap': ((-0.81, -1.08, -1.30), (0.21, 0.26, 0.27)),
+    'sal2_sat': ((-0.28, -0.90, -1.17), (0.12, 0.23, 0.24)),
+    'L_int': ((3.54, 4.25, 4.99), (0.59, 0.64, 0.67)),
+    'c_cov': ((-1.36, -1.97, -1.70), (0.35, 0.40, 0.33)),
+    'D_coord': ((-2.07, -3.33, -3.93), (0.52, 0.54, 0.60)),
+    's_regime': ((-1.92, -5.46, -11.65), (0.27, 0.57, 0.94)),
+    's_halt': ((-0.35, -1.81, -5.28), (0.10, 0.28, 0.61)),
+    'kappa_s': ((-0.16, -0.62, -1.60), (0.05, 0.11, 0.21)),
+    'lam_mis': ((0.70, 1.84, 3.58), (0.05, 0.15, 0.37)),
+    'lam_conc': ((1.30, 6.35, 13.21), (0.10, 0.36, 0.82)),
+    'c_conc': ((-0.15, -0.94, -2.17), (0.06, 0.22, 0.46)),
+    'p_bind_first': ((-0.69, -0.17, -0.14), (0.43, 0.22, 0.15)),
 }
-# Why a parameter is inert in this model (|effect| < INERT_PP at every horizon); written from the measured run.
-HN_INERT_REASON = {
+# Why a parameter's effect is inert or small in this model (|effect| < INERT_PP at every horizon; 'inert' also
+# needs |effect| + 2 SE < INERT_PP, see hn_class); written from the measured run.
+HN_SMALL_REASON = {
     'gamma_d': 'binding restraint slows capability growth only once it has built up (mean R is about 0.1-0.3 in '
                '2028-2030, block 12), while the median path crosses its own threshold around 2029; slower growth '
                'also delays the alignment gate, which offsets part of the gain',
     'h_sal': 'the salience response of the safety share is at least 90% saturated during most of the at-risk time '
              '(block 12), so a longer salience memory adds little; tier-2 losses recur on most paths and renew it',
-    'pi_uni': 'unilateral pauses last weeks (h_uni_weeks 2-8) and cut the aggregate cluster rate by only about 5% of '
-              'at-risk time on average (block 12, mean unilateral rate cut); with per-incident learning a lower rate '
-              'partly delays accidental hits instead of removing them',
+    'pi_uni': 'unilateral pauses last weeks (h_uni_weeks 2-8) and cut the aggregate cluster rate by only about 5% on '
+              'average over the at-risk time (block 12, mean unilateral rate cut); with per-incident learning a lower '
+              'rate partly delays accidental hits instead of removing them',
     'e_uni': 'same mechanism as pi_uni: unilateral pauses are short and cut the aggregate rate by only about 5% on '
              'average (block 12)',
     'h_uni_weeks': 'same mechanism as pi_uni: even the longest unilateral half-life (8 weeks) is short against the '
                    'decades over which the hazard accumulates',
     'race_persistence': 'it sets only the proactive coordinated-pause hazard pi0; in S1 tier-2 losses arrive early on '
-                        'most paths and drive the coordinated-pause hazard through pi1, so only about 4% of first '
+                        'most paths and drive the coordinated-pause hazard through pi1, so under 5% of first '
                         'coordinated pauses precede every tier-2 loss (block 12); racing acts in this model through g, '
                         'r_max and w',
     'p_bind_first': 'only the HF binding jump depends on it; tier-2 losses produce their own binding jumps later on '
@@ -1483,6 +1538,13 @@ def pp(x, nd=1):
     if x is None or x != x:
         return 'n/a'
     return '%+.*f pp' % (nd, 100.0 * x)
+
+
+def se_txt(x_pp):
+    """A Monte Carlo SE already in pp, to one decimal; '<0.1' instead of '0.0'."""
+    if x_pp != x_pp:
+        return 'n/a'
+    return '<0.1' if x_pp < 0.05 else '%.1f' % x_pp
 
 
 def yr(t):
@@ -1694,10 +1756,6 @@ def run_path(P, sw, rng_x, sums, diag=False):
     decUh = [2.0 ** (-0.5 * c / h_uni_yr) for c in CLS_DT]                   # decay over half an interval
     IUh = [(1.0 - a) * h_uni_yr / (LN2 * 0.5 * c) for a, c in zip(decUh, CLS_DT)]   # mean of 2^(-s/h) on a half
     R_floor_after_pause = e_resp if e_resp < R_max else R_max
-    share_base = safety_share if safety_share < SHARE_MAX else SHARE_MAX
-    sfac_base = share_base / SIGMA_REF
-    if sfac_base > s_effort_max:
-        sfac_base = s_effort_max
     if learn_count == 'sampled':
         rng_l = random.Random(hash(rng_x.getstate()[1]))   # separate stream: U1/U4 stay aligned
     else:
@@ -1943,7 +2001,7 @@ def run_path(P, sw, rng_x, sums, diag=False):
         # 6b. visible losses at the interval midpoint: K ~ Poisson(nu dt) by inverting U1
         if events_on:
             U1 = rand()
-            nu_pub = r_root * q_v_cl * (1.0 - u_cl)
+            nu_pub = r_root * pi_det * q_v_cl * (1.0 - u_cl)   # q0 is conditional on detection (pi_det)
             nu_unc = r_root * (u_cl - p_cl)
             nu = nu_pub + nu_unc
             if nu > 0.0:
@@ -2252,6 +2310,9 @@ def run_s0_cells(seed):
 
 
 def s0_prior_averaged():
+    """Uniform average of the paper's 36 closed-form cells; half of them (grow = True) carry v0.1's unbounded
+    yearly doubling of the incident rate (review F07), so the average of the 18 fixed-rate cells is returned
+    as well, under 'fixed'."""
     cells = []
     for d in S0_GRID_36['d_months']:
         for Hc in S0_GRID_36['Hc_hours']:
@@ -2259,22 +2320,27 @@ def s0_prior_averaged():
             for p in S0_GRID_36['p']:
                 for grow in (False, True):
                     cells.append((Tc, p, grow))
-    n = len(cells)
 
-    def F(Y):
-        return sum(v01_P(Y, Tc, p, grow) for (Tc, p, grow) in cells) / n
-    py = dict((Y, F(Y)) for Y in YEARS)
-    ts = [2027.0 + 0.01 * i for i in range(7301)]
-    Fs = [F(t) for t in ts]
-    qs = []
-    for q in (0.1, 0.5, 0.9):
-        val = None
-        for i in range(1, len(ts)):
-            if Fs[i] >= q:
-                val = ts[i - 1] + (q - Fs[i - 1]) / (Fs[i] - Fs[i - 1]) * 0.01 if Fs[i] > Fs[i - 1] else ts[i]
-                break
-        qs.append(val)
-    return {'P': py, 'q': qs, 'n': n}
+    def avg_of(cs):
+        n = len(cs)
+
+        def F(Y):
+            return sum(v01_P(Y, Tc, p, grow) for (Tc, p, grow) in cs) / n
+        py = dict((Y, F(Y)) for Y in YEARS)
+        ts = [2027.0 + 0.01 * i for i in range(7301)]
+        Fs = [F(t) for t in ts]
+        qs = []
+        for q in (0.1, 0.5, 0.9):
+            val = None
+            for i in range(1, len(ts)):
+                if Fs[i] >= q:
+                    val = ts[i - 1] + (q - Fs[i - 1]) / (Fs[i] - Fs[i - 1]) * 0.01 if Fs[i] > Fs[i - 1] else ts[i]
+                    break
+            qs.append(val)
+        return {'P': py, 'q': qs, 'n': n}
+    out = avg_of(cells)
+    out['fixed'] = avg_of([c for c in cells if not c[2]])
+    return out
 
 
 # ----------------------------------------------------------------------------
@@ -2418,9 +2484,10 @@ def run_oat(S1res, N_OAT, seed, qtab):
         sw50, se50 = paired(lo['recs'], hi['recs'], 'E1', 2050)
         d35, _ = paired(lo['recs'], hi['recs'], 'E1', 2035)
         dsafe, _ = paired(lo['recs'], hi['recs'], 'safe', 2100)
+        dE2 = paired(lo['recs'], hi['recs'], 'E2', 2100)
         rows.append({'name': name, 'hn': spec['hn'], 'tag': spec['tag'], 'q10': q10, 'q90': q90,
                      'p50_lo': at(lo['E1'], 2050), 'p50_hi': at(hi['E1'], 2050), 'swing': sw50, 'se': se50,
-                     'd35': d35, 'dsafe': dsafe})
+                     'd35': d35, 'dsafe': dsafe, 'dE2': dE2})
     base = S1res['recs'][:N_OAT]
     return rows, mean(r['E1'][YP[2050]] for r in base)
 
@@ -2502,25 +2569,42 @@ def run_hn_effects(S1res, N, seed, qtab, sign_rows, n_sign):
             lo, hi = _fixed_param_runs(S1res, name, (qtab[name][0], qtab[name][4]), N, seed, sw)
             d = dict((Y, paired(lo['recs'], hi['recs'], 'E1', Y)) for Y in HNE_YEARS)
             n = N
-        out[name] = {'lo': qtab[name][0], 'hi': qtab[name][4], 'N': n, 'd': d,
-                     'inert': all(abs(d[Y][0]) < INERT_PP for Y in HNE_YEARS)}
+        cls = hn_class([d[Y][0] for Y in HNE_YEARS], [d[Y][1] for Y in HNE_YEARS])
+        out[name] = {'lo': qtab[name][0], 'hi': qtab[name][4], 'N': n, 'd': d, 'cls': cls,
+                     'inert': cls == 'inert'}
     return out
 
 
+def hn_class(d, se):
+    """Class of a measured effect: d and se are the effects and SEs at HNE_YEARS (same units as INERT_PP).
+    'inert': |d| + 2 SE < INERT_PP at every horizon; 'small': |d| < INERT_PP at every horizon but not inert;
+    otherwise 'active'."""
+    if all(abs(x) + 2.0 * s < INERT_PP for x, s in zip(d, se)):
+        return 'inert'
+    if all(abs(x) < INERT_PP for x in d):
+        return 'small'
+    return 'active'
+
+
+HN_CLASS_TEXT = {'inert': 'inert in this model', 'small': 'small in this model, not shown inert',
+                 'active': 'active'}
+
+
 def hn_record_check(hne, default_run):
-    """Compares the measured effects (rounded to 0.01 pp) with HN_EFFECT_RECORD and the inert set with
-    HN_INERT_REASON. Returns (status text, list of stale names)."""
+    """Compares the measured effects and their SEs (rounded to 0.01 pp) with HN_EFFECT_RECORD, and the set of
+    inert or small parameters with HN_SMALL_REASON. Returns (status text, list of stale names)."""
     if not default_run:
         return 'not compared (non-default seed or draw counts)', []
     stale = []
     for name, e in hne.items():
-        cur = tuple(round(100.0 * e['d'][Y][0], 2) for Y in HNE_YEARS)
+        cur = (tuple(round(100.0 * e['d'][Y][0], 2) for Y in HNE_YEARS),
+               tuple(round(100.0 * e['d'][Y][1], 2) for Y in HNE_YEARS))
         rec = HN_EFFECT_RECORD.get(name)
-        if rec is None or any(abs(a - b) > 0.0051 for a, b in zip(rec, cur)):
+        if rec is None or any(abs(a - b) > 0.0051 for r, c in zip(rec, cur) for a, b in zip(r, c)):
             stale.append(name)
-        if e['inert'] != (name in HN_INERT_REASON):
-            stale.append(name + ' (inert reason)')
-    extra = [n for n in HN_INERT_REASON if n not in hne]
+        if (e['cls'] != 'active') != (name in HN_SMALL_REASON):
+            stale.append(name + ' (reason)')
+    extra = [n for n in HN_SMALL_REASON if n not in hne]
     stale += [n + ' (unknown name)' for n in extra]
     return ('matches this run' if not stale else 'STALE for ' + ', '.join(stale)), stale
 
@@ -2631,7 +2715,7 @@ def emit_yaml():
     lines = []
     lines.append('')
     lines.append('# ===========================================================================')
-    lines.append('# v0.2 Monte Carlo model (model/mc.py), added 2026-10-10. Documentation only:')
+    lines.append('# Monte Carlo model (model/mc.py) v%s; added in v0.2, 2026-10-10. Documentation only:' % MC_VERSION)
     lines.append('# mc.py does not parse this file; at start-up it warns if a parameter or constant')
     lines.append('# name below is missing. Everything above this block is the v0.1 parameter set,')
     lines.append('# unchanged. Regenerate this block with: python3 model/mc.py --emit-yaml')
@@ -2689,15 +2773,18 @@ def emit_yaml():
                         'sign_check_racing': SIGN_RACING,
                         'sign_check_values': 'prior q01 and q99',
                         'hn_effect_sweep': 'every human-nature parameter at its prior q01 and q99, CRN on the first '
-                                           'S1 draws; inert in this model = |dP(E1)| < %g pp at %s'
-                                           % (100 * INERT_PP, ', '.join(str(y) for y in HNE_YEARS)),
+                                           'S1 draws; inert in this model = |dP(E1)| + 2 SE < %g pp at %s; small = '
+                                           '|dP(E1)| < %g pp at every year but not inert'
+                                           % (100 * INERT_PP, ', '.join(str(y) for y in HNE_YEARS), 100 * INERT_PP),
+                        'e2_only_parameters': list(E2_ONLY),
                         'main_result_table': 'S1 P(E1 by Y) and P(E2 by Y) for every output year, conditional on '
                                              'the e1 bins [1e-4, 1e-3), [1e-3, 1e-2), [1e-2, 1e-1), [1e-1, 0.5] '
                                              '(each row an average over e1 spread log-uniformly across the decade, '
                                              'not a point value), with prior mass, draw count and the accident / '
                                              'misuse + lock-in split at 2050 and 2100; and S1 P(E1) and P(E2) by '
                                              '%s at the point values e1 = %s (local means over the S1 draws within '
-                                             '+/-%g decade, with draw count and SE; block 4b)'
+                                             '+/-%g decade, with draw count and SE, and the accident / misuse + '
+                                             'lock-in split at 2050 and 2100; block 4b)'
                                              % (', '.join(str(Y) for Y in E1_POINT_YEARS),
                                                 ', '.join(fnum(x) for x in E1_POINTS), E1_POINT_HALFWIDTH),
                         'conditional_tables': 'S1 conditional on the s_regime, s_align and x_plateau terciles '
@@ -2732,15 +2819,16 @@ def emit_yaml():
             if rec is None:
                 ent['effect'] = 'not recorded'
             else:
-                inert = spec['name'] in HN_INERT_REASON
                 ent['effect'] = {
-                    'dE1_pp_2035_2050_2100': list(rec),
-                    'class': 'inert in this model' if inert else 'active',
-                    'reason': HN_INERT_REASON.get(spec['name'], ''),
+                    'dE1_pp_2035_2050_2100': list(rec[0]),
+                    'se_pp_2035_2050_2100': list(rec[1]),
+                    'class': HN_CLASS_TEXT[hn_class([x / 100.0 for x in rec[0]], [x / 100.0 for x in rec[1]])],
+                    'reason': HN_SMALL_REASON.get(spec['name'], ''),
                     'how_measured': 'P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the '
-                                    'first %d S1 draws per side (seed %d); inert = |effect| < %g pp at every year'
+                                    'first %d S1 draws per side (seed %d); inert = |effect| + 2 SE < %g pp at every '
+                                    'year; small = |effect| < %g pp at every year but not inert'
                                     % (N_SIGN_DEFAULT if spec['name'] in SIGN_PARAMS else N_HNE_DEFAULT,
-                                       DEFAULT_SEED, 100 * INERT_PP)}
+                                       DEFAULT_SEED, 100 * INERT_PP, 100 * INERT_PP)}
                 if not ent['effect']['reason']:
                     del ent['effect']['reason']
         return ent
@@ -2896,7 +2984,12 @@ def print_s0_cells(cells, avg):
     emit()
     emit('Six deterministic engine paths (E2 = E1 because v0.1 does not distinguish them), then the '
          'uniform average of the paper\'s 36 closed-form cells (d in {3, 4.3, 7} months x H_c in '
-         '{167, 2000} h x p in {1, 5, 20}% x {fixed, doubling}), each with its own T_c and clock.')
+         '{167, 2000} h x p in {1, 5, 20}%% x {fixed, doubling}), each with its own T_c and clock. Caveat: half of '
+         'the 36 cells (the 18 "doubling" cells) let the incident rate double every year without bound, the v0.1 '
+         'form that review F07 rejected (S1-S3 cap the rate at r_max), and every one of them passes 99%% within '
+         '%.1f years of its T_c; the row is a reproduction of the v0.1 grid, not a prior. The average of the 18 '
+         'fixed-rate cells alone is printed below it.'
+         % max(math.log2(1.0 + math.log(100.0) * LN2 / (4.0 * p)) for p in S0_GRID_36['p']))
     emit()
     rows = []
     for c in cells:
@@ -2904,9 +2997,11 @@ def print_s0_cells(cells, avg):
         lab = 'S0 p = %g%%, %s' % (100 * cl['p'], 'doubling' if cl['grow'] else 'fixed')
         rows.append(curve_row(lab, 'E1', c['E1']))
         rows.append(curve_row(lab, 'E2 (= E1, v0.1)', c['E2']))
-    for d in ('E1', 'E2 (= E1, v0.1)'):
-        rows.append(['S0 prior-averaged (36 cells)', d] + [pc(avg['P'][Y]) for Y in YEARS] +
-                    [yr(x) for x in avg['q']] + [pc(1.0 - avg['P'][2100])])
+    for lab, av in (('S0 prior-averaged (36 cells, 18 with unbounded doubling)', avg),
+                    ('S0 averaged over the 18 fixed-rate cells', avg['fixed'])):
+        for d in ('E1', 'E2 (= E1, v0.1)'):
+            rows.append([lab, d] + [pc(av['P'][Y]) for Y in YEARS] +
+                        [yr(x) for x in av['q']] + [pc(1.0 - av['P'][2100])])
     table(HDR_CURVE, rows)
     emit('S0 overrides (from the PARAMS block): ' + '; '.join(
         '%s %s' % (s['name'], prior_str(s['overrides']['S0'])) for s in PARAMS if 'S0' in s['overrides'])
@@ -3105,12 +3200,13 @@ def print_conditional(S1):
     b_lo = [b for b in bins if abs(b['lo'] - 1e-2) < 1e-12][0]
     emit('Check: a local linear fit in log10 e1 on the same windows, read at the point, differs from the local mean '
          'by at most %s at the two-sided points and by at most %.1f times the local mean\'s own Monte Carlo SE, so '
-         'the slope and curvature of P(E1) and P(E2) inside a window %s. The bin rows are not point '
+         'the slope of P(E1) and P(E2) inside a window, combined with the uneven spread of the draws in it, %s. A '
+         'linear fit tests the slope only; curvature inside a window is not tested. The bin rows are not point '
          'values: at e1 = 1e-2, the lower end of the [1e-2, 1e-1) bin, P(E1 by 2050) is %s and P(E1 by 2100) %s, '
          'against %s and %s in that bin\'s row.'
          % (pp(ll_dev).lstrip('+'), ll_rat,
-            'do not bias the local means beyond their sampling error' if ll_rat < 1.0 else
-            'bias some local means by more than their sampling error (read such a row as a window average)',
+            'does not bias the local means beyond their sampling error' if ll_rat < 1.0 else
+            'biases some local means by more than their sampling error (read such a row as a window average)',
             pc(p_lo['mean']['E1'][2050]), pc(p_lo['mean']['E1'][2100]),
             pc(mean(S1['recs'][i]['E1'][YP[2050]] for i in b_lo['idx'])),
             pc(mean(S1['recs'][i]['E1'][YP[2100]] for i in b_lo['idx']))))
@@ -3129,12 +3225,32 @@ def print_conditional(S1):
         for Y in (2050, 2100):
             a, sa, sd, ss = channel_split(S1, idx, Y)
             e1v = [S1['recs'][i]['E1'][YP[Y]] for i in idx]
-            cells += ['%s (%.1f)' % (pc(mean(e1v)), 100 * se_of(e1v)), '%s (%.1f)' % (pc(a), 100 * sa),
-                      '%s (%.1f)' % (pc(sd), 100 * ss)]
+            cells += ['%s (%s)' % (pc(mean(e1v)), se_txt(100 * se_of(e1v))), '%s (%s)' % (pc(a), se_txt(100 * sa)),
+                      '%s (%s)' % (pc(sd), se_txt(100 * ss))]
         sf = mean(S1['recs'][i]['safe'][YP[2100]] for i in idx)
         rows.append([b['label'], pc(b['mass']), str(len(idx))] + cells + [pc(sf)])
     table(['e1 bin', 'prior mass', 'draws', 'P(E1 by 2050)', 'accident 2050', 'side 2050', 'P(E1 by 2100)',
            'accident 2100', 'side 2100', 'P(safe by 2100)'], rows)
+    emit('The point values split by channel (same windows and draws as the point-value table; Monte Carlo SE in '
+         'brackets):')
+    emit()
+    rows = []
+    for pt in pts:
+        idx = pt['idx']
+        lab = fnum(pt['e1']) + (' (one-sided window)' if pt['one_sided'] else '')
+        if len(idx) < 2:
+            rows.append([lab, str(len(idx))] + ['n/a'] * 7)
+            continue
+        cells = []
+        for Y in (2050, 2100):
+            a, sa, sd, ss = channel_split(S1, idx, Y)
+            e1v = [S1['recs'][i]['E1'][YP[Y]] for i in idx]
+            cells += ['%s (%s)' % (pc(mean(e1v)), se_txt(100 * se_of(e1v))), '%s (%s)' % (pc(a), se_txt(100 * sa)),
+                      '%s (%s)' % (pc(sd), se_txt(100 * ss))]
+        sf = mean(S1['recs'][i]['safe'][YP[2100]] for i in idx)
+        rows.append([lab, str(len(idx))] + cells + [pc(sf)])
+    table(['e1 (point)', 'draws', 'P(E1 by 2050)', 'accident 2050', 'side 2050', 'P(E1 by 2100)', 'accident 2100',
+           'side 2100', 'P(safe by 2100)'], rows)
     hi_idx = [i for i, P in enumerate(S1['params']) if P['e1'] >= 1e-2]
     lo_idx = [i for i, P in enumerate(S1['params']) if P['e1'] < 1e-2]
     low = bins[0]
@@ -3166,6 +3282,8 @@ def print_conditional(S1):
             'e1_low_2100': e1_low, 'side_low_2100': side_low,
             'points': [{'e1': pt['e1'], 'window': [pt['lo'], pt['hi']], 'one_sided': pt['one_sided'],
                         'draws': len(pt['idx']),
+                        'accident': dict((str(Y), channel_split(S1, pt['idx'], Y)[0]) for Y in (2050, 2100)),
+                        'side': dict((str(Y), channel_split(S1, pt['idx'], Y)[2]) for Y in (2050, 2100)),
                         'E1': dict((str(Y), pt['mean']['E1'][Y]) for Y in E1_POINT_YEARS),
                         'E2': dict((str(Y), pt['mean']['E2'][Y]) for Y in E1_POINT_YEARS),
                         'E1_se': dict((str(Y), pt['se']['E1'][Y]) for Y in E1_POINT_YEARS),
@@ -3344,8 +3462,11 @@ def print_comparison(cells, avg, results, ov_rows, blocks, s3v, hnm):
     rows.append(['S0 (p = 1%, fixed; v0.1)', pc(c0['E1'][YIDX[2035]]), pc(c0['E1'][YIDX[2050]]),
                  pc(c0['E1'][YIDX[2100]]), pc(c0['E2'][YIDX[2100]]) + ' (= E1)',
                  yr(t_quantile(c0['E1'], 0.5)), pc(0.0)])
-    rows.append(['S0 prior-averaged (36 cells)', pc(avg['P'][2035]), pc(avg['P'][2050]), pc(avg['P'][2100]),
-                 pc(avg['P'][2100]) + ' (= E1)', yr(avg['q'][1]), pc(0.0)])
+    rows.append(['S0 prior-averaged (36 cells, 18 with unbounded doubling; block 3)', pc(avg['P'][2035]),
+                 pc(avg['P'][2050]), pc(avg['P'][2100]), pc(avg['P'][2100]) + ' (= E1)', yr(avg['q'][1]), pc(0.0)])
+    fx = avg['fixed']
+    rows.append(['S0 averaged over the 18 fixed-rate cells', pc(fx['P'][2035]), pc(fx['P'][2050]), pc(fx['P'][2100]),
+                 pc(fx['P'][2100]) + ' (= E1)', yr(fx['q'][1]), pc(0.0)])
     S1 = [r for r in results if r['key'] == 'S1'][0]
     s1b = S1['snap'][blocks[0]['N']]
     for res in results:
@@ -3483,9 +3604,10 @@ def print_sensitivity(oat_rows, base50, terc, N_OAT, S1, blocks, sign_rows):
     trows = []
     for r in rows:
         tc, tse = terc[r['name']]
-        trows.append([r['name'], 'HN' if r['hn'] else '', fnum(r['q10']), fnum(r['q90']), pc(r['p50_lo']),
-                      pc(r['p50_hi']), pp(r['swing']), '%.1f pp' % (100 * r['se']), pp(r['d35']),
-                      pp(r['dsafe']), '%s (%.1f)%s' % (pp(tc), 100 * tse, ' noise' if abs(tc) < 2 * tse else '')])
+        trows.append([r['name'] + (' (E2 only)' if r['name'] in E2_ONLY else ''), 'HN' if r['hn'] else '',
+                      fnum(r['q10']), fnum(r['q90']), pc(r['p50_lo']),
+                      pc(r['p50_hi']), pp(r['swing']), '%s pp' % se_txt(100 * r['se']), pp(r['d35']),
+                      pp(r['dsafe']), '%s (%s)%s' % (pp(tc), se_txt(100 * tse), ' noise' if abs(tc) < 2 * tse else '')])
     table(['parameter', 'HN', 'q10 value', 'q90 value', 'P(E1 by 2050) at q10', 'at q90', 'swing',
            'paired SE', 'dP(E1 by 2035)', 'dP(safe by 2100)', 'e1-stratified tercile contrast (SE)'], trows)
     e1row = [r for r in rows if r['name'] == 'e1'][0]
@@ -3493,15 +3615,25 @@ def print_sensitivity(oat_rows, base50, terc, N_OAT, S1, blocks, sign_rows):
     ai = [r for r in rows if not r['hn']]
     top_hn = hn[0]
     top_ai = ai[0]
-    inert = [r for r in rows if abs(r['swing']) < 0.01]
+    e2o = [r for r in rows if r['name'] in E2_ONLY]
+    rest = [r for r in rows if r['name'] not in E2_ONLY]
+    inert = [r for r in rest if abs(r['swing']) + 2.0 * r['se'] < INERT_PP]
+    small = [r for r in rest if abs(r['swing']) < INERT_PP <= abs(r['swing']) + 2.0 * r['se']]
     byname = dict((r['name'], r) for r in rows)
 
     def sw_of(names):
         return ', '.join('%s %s' % (n, pp(byname[n]['swing'])) for n in names if n in byname)
-    emit('Inert or nearly inert at the prior q10/q90 (|swing on P(E1 by 2050)| < 1 pp; paired SE in pp): ' +
-         (', '.join('%s%s (%s, SE %.1f)' % (r['name'], ' [HN]' if r['hn'] else '', pp(r['swing']), 100 * r['se'])
-                    for r in inert) or 'none') +
-         '. This list is a measured result, not a design claim. Unilateral restraint (now integrated exactly over '
+
+    def lst(rs):
+        return ', '.join('%s%s (%s, SE %s)' % (r['name'], ' [HN]' if r['hn'] else '', pp(r['swing']),
+                                                se_txt(100 * r['se'])) for r in rs) or 'none'
+    emit('Inert at the prior q10/q90 (|swing on P(E1 by 2050)| + 2 SE < %.0f pp; paired SE in pp): %s. Small but '
+         'within 2 SE of the %.0f pp line, so not shown inert (|swing| < %.0f pp <= |swing| + 2 SE): %s. E2 only, '
+         'not inert: %s act on P(E2) alone and leave every E1 quantity unchanged by construction (swing on P(E2 by '
+         '2100) at q10 -> q90, SE: %s). '
+         % (100 * INERT_PP, lst(inert), 100 * INERT_PP, 100 * INERT_PP, lst(small), ', '.join(r['name'] for r in e2o),
+            ', '.join('%s %s (%s)' % (r['name'], pp(r['dE2'][0]), se_txt(100 * r['dE2'][1])) for r in e2o)) +
+         'These lists are measured results, not design claims. Unilateral restraint (now integrated exactly over '
          'each interval): %s. Rate-only levers such as these and r0 stay small for two reasons: unilateral pauses '
          'cut the aggregate rate by only a few percent on average (block 12, "mean unilateral rate cut"), and '
          'learning is per incident, so fewer clusters also means fewer learned clusters and a rate cut partly '
@@ -3509,7 +3641,7 @@ def print_sensitivity(oat_rows, base50, terc, N_OAT, S1, blocks, sign_rows):
          'hit does not depend on the rate, because the learned count scales with it; block 10(a)). Salience '
          'response (saturating, no hard '
          'cap; the share of at-risk time it spends at least 90%% saturated is printed in block 12): %s. Tier-2 '
-         'salience and jump size: %s. phi_* and delta_e2 move only E2, which this column does not show.'
+         'salience and jump size: %s.'
          % (sw_of(['pi_uni', 'e_uni', 'h_uni_weeks']), sw_of(['w1', 'share_mult_max', 'h_sal']),
             sw_of(['m2', 'e', 'R_max'])))
     emit()
@@ -3559,7 +3691,7 @@ def print_sensitivity(oat_rows, base50, terc, N_OAT, S1, blocks, sign_rows):
         d100 = bd[b['id']][2100]
         brows.append([b['label'], pc(at(b['E1'], 2035)), pc(at(b['E1'], 2050)), pc(at(b['E1'], 2100)),
                       pc(at(b['E2'], 2100)), pc(at(b['safe'], 2100)),
-                      '%s (%.1f)' % (pp(d50[0]), 100 * d50[1]), '%s (%.1f)' % (pp(d100[0]), 100 * d100[1])])
+                      '%s (%s)' % (pp(d50[0]), se_txt(100 * d50[1])), '%s (%s)' % (pp(d100[0]), se_txt(100 * d100[1]))])
     table(['variant', 'P(E1 by 2035)', 'P(E1 by 2050)', 'P(E1 by 2100)', 'P(E2 by 2100)', 'P(safe by 2100)',
            'dP(E1 by 2050)', 'dP(E1 by 2100)'], brows)
     emit('(e) Sign check of the racing and dismissal parameters (S1, first %d draws, each parameter at its '
@@ -3733,8 +3865,12 @@ def effect_text(e, name):
     txt = '%s / %s / %s (SE %.2f / %.2f / %.2f; N = %d per side)' % (
         pp(d[2035][0], 2), pp(d[2050][0], 2), pp(d[2100][0], 2), 100 * d[2035][1], 100 * d[2050][1], 100 * d[2100][1],
         e['N'])
-    if e['inert']:
-        txt += '; inert in this model: ' + HN_INERT_REASON.get(name, '(reason not recorded)')
+    if e['cls'] == 'inert':
+        txt += '; inert in this model: ' + HN_SMALL_REASON.get(name, '(reason not recorded)')
+    elif e['cls'] == 'small':
+        near = [str(Y) for Y in HNE_YEARS if abs(d[Y][0]) + 2.0 * d[Y][1] >= INERT_PP]
+        txt += ('; small in this model, not shown inert (|effect| + 2 SE >= %.0f pp at %s): %s'
+                % (100 * INERT_PP, ', '.join(near), HN_SMALL_REASON.get(name, '(reason not recorded)')))
     return txt
 
 
@@ -3750,10 +3886,12 @@ def print_param_lists(qtab, hne, rec_status):
          'pi_det) is AI nature; how labs, states, firms and publics behave from now on is human nature. The '
          '"measured effect" column is P(E1 by 2035 / 2050 / 2100) with the parameter at its prior q99 minus at its '
          'q01, the other parameters keeping their S1 draws (common random numbers on the first N S1 draws; the '
-         'sign-check parameters reuse those runs); a parameter whose |effect| is below %.0f pp at all three '
-         'horizons is marked "inert in this model" with the reason. The same values are recorded in PARAMS '
-         '(HN_EFFECT_RECORD) and params.yaml (human_nature: effect); record check: %s.'
-         % (N_HN, 100 * INERT_PP, rec_status))
+         'sign-check parameters reuse those runs); a parameter is marked "inert in this model" only if |effect| + '
+         '2 SE is below %.0f pp at all three horizons, and "small in this model, not shown inert" if |effect| is '
+         'below %.0f pp at all three but within 2 SE of that line at one or more; both carry the mechanism. The same '
+         'values and SEs are recorded in PARAMS (HN_EFFECT_RECORD) and params.yaml (human_nature: effect); record '
+         'check: %s.'
+         % (N_HN, 100 * INERT_PP, 100 * INERT_PP, rec_status))
     emit()
     rows = []
     for s in PARAMS:
@@ -3767,9 +3905,11 @@ def print_param_lists(qtab, hne, rec_status):
     table(['name', 'meaning', 'prior', 'tag', 'rationale (sources)', 'S2 override', 'S3 override',
            'S1-side-high override', 'q01 -> q99', 'measured effect dP(E1 by 2035 / 2050 / 2100), q01 -> q99'],
           rows)
-    inert = [n for n, e in hne.items() if e['inert']]
-    emit('Inert in this model (|effect| < %.0f pp at 2035, 2050 and 2100): %s.' % (100 * INERT_PP, ', '.join(inert)
-                                                                                  or 'none'))
+    inert = [n for n, e in hne.items() if e['cls'] == 'inert']
+    small = [n for n, e in hne.items() if e['cls'] == 'small']
+    emit('Inert in this model (|effect| + 2 SE < %.0f pp at 2035, 2050 and 2100): %s. Small in this model but not '
+         'shown inert (|effect| < %.0f pp at every horizon, within 2 SE of that line at one or more): %s.'
+         % (100 * INERT_PP, ', '.join(inert) or 'none', 100 * INERT_PP, ', '.join(small) or 'none'))
     emit()
     emit('AI-nature, capability and channel parameters (%d):' % (len(PARAMS) - N_HN))
     emit()
@@ -4015,8 +4155,9 @@ def print_footer(S1, oat_sorted, bd, blocks, sign_rows, dv, S3, s3v, cond, lchk,
         'N5 e1 (an [Assumption] spanning 3.7 orders of magnitude) is the largest single lever: OAT swing %s on '
         'P(E1 by 2050); draws with e1 >= 1e-2 (prior mass %s) carry %s of S1\'s P(E1 by 2050), and block 4b prints '
         'the result per e1 decade bin (an average over the decade) and at eight point values of e1 (local means), '
-        'so a reader can substitute their own e1 from the point-value table. The S1 level is set mainly by e1 and the '
-        'side-channel priors lam_mis, lam_conc and L_conc: of P(E1 by 2100) = %s, the accident channel carries %s '
+        'so a reader can substitute their own e1 from the point-value table. The S1 level is set mainly by e1 (the '
+        'next largest OAT swings are %s); the side-channel priors lam_mis, lam_conc and L_conc set the floor that '
+        'remains at low e1 (block 4b): of P(E1 by 2100) = %s, the accident channel carries %s '
         'and misuse + lock-in %s (with the former, higher-hazard side-channel priors, S1-side-high, P(E1 by 2100) '
         '= %s). The safe-exit block '
         'reduces it: on the block-9(d) draws P(E1 by 2100) is %s with all routes, %s with the safe exit limited '
@@ -4033,6 +4174,7 @@ def print_footer(S1, oat_sorted, bd, blocks, sign_rows, dv, S3, s3v, cond, lchk,
         '([Assumption]) '
         'and which the pool does not cover. The S2 row is premise-driven by construction.'
         % (pp(e1row['swing']), pc(cond['prior_mass_hi']), pc(cond['share50_hi']),
+           ', '.join('%s %s' % (r['name'], pp(r['swing'])) for r in [x for x in oat_sorted if x['name'] != 'e1'][:3]),
            pc(at(S1['E1'], 2100)), pc(s1_acc[YP[2100]]), pc(s1_side[YP[2100]]), pc(at(R['S1-side-high']['E1'], 2100)),
            pc(at(s1b['E1'], 2100)),
            pc(at(anc['E1'], 2100)), pc(at(nos['E1'], 2100)), d1['reg_cal'], SAFE_ANCHOR[0], SAFE_ANCHOR[1],
@@ -4197,7 +4339,8 @@ def main(argv):
             ms = 1000.0 * results[-1]['time'] / N
             proj = (time.time() - T_WALL0) + (n_paths - paths_done) * ms / 1000.0
             progress('projected total run time %.0f s (%d engine paths at %.2f ms/path measured on S1); a laptop '
-                     '2.5x slower would take about %.0f s; --quick runs every N / 4' % (proj, n_paths, ms, 2.5 * proj))
+                     '2.5x slower would take about %.0f s (2.5 x the projected time); --quick runs every N / 4'
+                     % (proj, n_paths, ms, 2.5 * proj))
     R = dict((r['key'], r) for r in results)
     S1 = R['S1']
     progress('S1 sensitivity: OAT (%d parameters x 2 sides x %d draws)' % (len(PARAMS), n_oat))
@@ -4249,11 +4392,12 @@ def main(argv):
          'N_OAT = %d per side x 2 x %d parameters, N_BLOCK = %d per variant x %d (S1) + %d (S3), N_SIGN = %d per '
          'side x 2 x %d, N_HNE = %d per side x 2 x %d human-nature parameters%s; %d engine paths in total; grid: %s; '
          'learning_mode default = %r, learn_count default = %r; projected run time %.0f s, wall time %.1f s (S1 '
-         '%.2f ms/path; OAT %.1f s; a laptop 2.5x slower would take about %.0f s).'
+         '%.2f ms/path; OAT %.1f s; a laptop 2.5x slower would take about %.0f s, 2.5 x the projected time, as in '
+         'the progress line).'
          % (AS_OF, seed, sys.version.split()[0], n_main, n_var, n_var2, n_oat, len(PARAMS), n_block,
             len(BLOCK_VARIANTS), len(S3_VARIANTS), n_sign, len(SIGN_PARAMS), n_hne, n_hn_sweep,
             ' (--quick)' if quick else '', n_paths, GRID_DOC, SWITCHES_DEFAULT['learning_mode'],
-            SWITCHES_DEFAULT['learn_count'], proj, wall, 1000.0 * S1['time'] / S1['N'], t_oat, 2.5 * wall))
+            SWITCHES_DEFAULT['learn_count'], proj, wall, 1000.0 * S1['time'] / S1['N'], t_oat, 2.5 * proj))
     emit()
     emit('All Monte Carlo quantities are prior-predictive means over the stated priors; no output is '
          'conditioned on data except through the priors and the 2026-10 initial state.')
@@ -4277,16 +4421,21 @@ def main(argv):
     side = channel_curve(S1, 'side')
     se100 = se_of([r['E1'][YP[2100]] for r in S1['recs']])
     hy = (2035, 2050, 2100)
+    e1o = [r for r in oat_sorted if r['name'] == 'e1'][0]
+    nxt = [r for r in oat_sorted if r['name'] != 'e1'][:3]
     emit('Headline (S1, historical human nature): P(E1 by 2035 / 2050 / 2100) = %s; of which accidental escape %s '
          'and the side channels (deliberate misuse + lock-in) %s; P(E2 strict by 2035 / 2050 / 2100) = %s; P(safe '
          'exit by 2100) = %s (Monte Carlo SE of P(E1 by 2100) %.1f pp; tables to 0.1 pp in blocks 4 and 4b). The '
-         'level is set mainly by e1 and the side-channel priors: draws with e1 >= 1e-2 (%s of the prior) carry %s of '
+         'level is set mainly by e1 (one-at-a-time swing on P(E1 by 2050) between its prior q10 and q90 %s; the next '
+         'largest are %s; block 9(a)): draws with e1 >= 1e-2 (%s of the prior) carry %s of '
          'P(E1 by 2100), while draws with e1 < 1e-3 still reach %s by 2100, of which %s (%s of it) come through '
          'the side channels (block 4b); with the former, higher-hazard side-channel priors (S1-side-high) P(E1 by 2100) '
          '= %s.'
          % (' / '.join(pch(at(S1['E1'], Y)) for Y in hy), ' / '.join(pch(acc[YP[Y]]) for Y in hy),
             ' / '.join(pch(side[YP[Y]]) for Y in hy), ' / '.join(pch(at(S1['E2'], Y)) for Y in hy),
-            pch(at(S1['safe'], 2100)), 100 * se100, pc(cond['prior_mass_hi']), pc(cond['share100_hi']),
+            pch(at(S1['safe'], 2100)), 100 * se100, '%+.0f pp' % (100 * e1o['swing']),
+            ', '.join('%s %+.0f pp' % (r['name'], 100 * r['swing']) for r in nxt),
+            pc(cond['prior_mass_hi']), pc(cond['share100_hi']),
             pch(cond['e1_low_2100']), pph(cond['side_low_2100']),
             pc(cond['side_low_2100'] / cond['e1_low_2100'] if cond['e1_low_2100'] > 0 else float('nan'), 0),
             pch(at(R['S1-side-high']['E1'], 2100))))
@@ -4329,6 +4478,7 @@ def main(argv):
           'projected_s': round(proj, 1) if proj is not None else None, 'engine_paths': n_paths,
           's0_regression': {'pass': ok, 'worst_dP_pp': round(100 * worst_p, 5), 'worst_dmedian_yr': round(worst_m, 4)},
           's0_prior_averaged': dict((str(Y), round(avg['P'][Y], 4)) for Y in YEARS),
+          's0_averaged_fixed_rate_cells': dict((str(Y), round(avg['fixed']['P'][Y], 4)) for Y in YEARS),
           'scenarios': dict((r['key'], sc_json(r)) for r in results),
           'block_variants': dict((b['id'], {'E1_2050': round(at(b['E1'], 2050), 5),
                                             'E1_2100': round(at(b['E1'], 2100), 5),
@@ -4343,6 +4493,7 @@ def main(argv):
                                 'P_E1_2050_given_e1_ge_1e-2': round(cond['p50_hi'], 5),
                                 'points': [{'e1': pt['e1'], 'window': [round(w, 6) for w in pt['window']],
                                             'one_sided': pt['one_sided'], 'draws': pt['draws'],
+                                            'accident': rnd(pt['accident']), 'side': rnd(pt['side']),
                                             'E1': rnd(pt['E1']), 'E2': rnd(pt['E2']), 'E1_se': rnd(pt['E1_se']),
                                             'E2_se': rnd(pt['E2_se'])} for pt in cond['points']],
                                 'bins': [{'label': b['label'], 'prior_mass': round(b['prior_mass'], 4),
@@ -4366,10 +4517,12 @@ def main(argv):
                                           'dE2_2100': round(r['dE2'][0], 5), 'se_E2_2100': round(r['dE2'][1], 5)})
                              for r in sign_rows),
           'hn_effects_pp': dict((n, {'d2035': round(100 * e['d'][2035][0], 2), 'd2050': round(100 * e['d'][2050][0], 2),
-                                     'd2100': round(100 * e['d'][2100][0], 2), 'se2100': round(100 * e['d'][2100][1], 2),
-                                     'N': e['N'], 'inert': e['inert']}) for n, e in hne.items()),
+                                     'd2100': round(100 * e['d'][2100][0], 2), 'se2035': round(100 * e['d'][2035][1], 2),
+                                     'se2050': round(100 * e['d'][2050][1], 2), 'se2100': round(100 * e['d'][2100][1], 2),
+                                     'N': e['N'], 'inert': e['inert'], 'class': e['cls']}) for n, e in hne.items()),
           'hn_effect_record': rec_status,
-          'hn_effect_record_current': dict((n, tuple(round(100.0 * e['d'][Y][0], 2) for Y in HNE_YEARS))
+          'hn_effect_record_current': dict((n, (tuple(round(100.0 * e['d'][Y][0], 2) for Y in HNE_YEARS),
+                                                tuple(round(100.0 * e['d'][Y][1], 2) for Y in HNE_YEARS)))
                                            for n, e in hne.items()),
           'S1_realised_safe_hazard_by_period': [round(x, 5) for x in dv['S1']['s']],
           'outside_view': {'E1_pool_2100': round(pools['E1']['pool'], 5), 'E2_pool_2100': round(pools['E2']['pool'], 5),

@@ -1,4 +1,4 @@
-model_version: 0.2
+model_version: 0.3
 as_of: 2026-10-10
 capability:
   t0: 2026.5            # [Inference] time of the HF incident
@@ -19,7 +19,7 @@ assumptions:
   - p merges P(uncontainable) and P(extinction | uncontainable)
 
 # ===========================================================================
-# v0.2 Monte Carlo model (model/mc.py), added 2026-10-10. Documentation only:
+# Monte Carlo model (model/mc.py) v0.3; added in v0.2, 2026-10-10. Documentation only:
 # mc.py does not parse this file; at start-up it warns if a parameter or constant
 # name below is missing. Everything above this block is the v0.1 parameter set,
 # unchanged. Regenerate this block with: python3 model/mc.py --emit-yaml
@@ -30,7 +30,7 @@ assumptions:
 # beta(a, b); uniform(lo, hi); one_plus_lognormal = 1 + lognormal; point = fixed.
 # ===========================================================================
 mc:
-  version: "0.2"
+  version: "0.3"
   as_of: "2026-10-10"
   run:
     seed: 20261010
@@ -57,7 +57,7 @@ mc:
     - "Hazards: accident h_acc = r_root p_cl; misuse h_mis = lam_mis G(x - L_open/d_yr - x_c)(1 - beta_p R); concentration h_conc = lam_conc G(x - x_c - L_conc/d_yr) max(0, 1 - c_conc R); G(z) = Phi(beta_c z); x is raw capability. Restraint R cuts the cluster rate by (1 - R); beta_p R additionally cuts uncontainability and misuse."
     - "Safe exit (absorbing), two routes: verified alignment s_align min(s_effort_max, share/SIGMA_REF) G(x_def - x_c) (AI nature: science, gated on the path's own threshold crossing) plus a durable control regime or deliberate halt s_regime (1 + kappa_s R) + s_halt [paused] (human nature, calibrated to the historical 0.5-1%/yr)."
     - "E1 = first of h_acc + h_mis + h_conc before a safe exit. E2 = population < 5,000 by Y: an accidental E1 world becomes strict extinction once its raw capability passes the level set by phi_acc, also after the E1 event, so P(E2 by Y) = phi_acc(x(Y)) P(E1 via accident by Y) + phi_mis P(E1 via misuse by Y) + phi_conc P(E1 via concentration by Y), a subset of E1."
-    - "Visible losses: a Poisson process at rate r_root [q_v (1 - u_cl) + (u_cl - p_cl)] (K ~ Poisson(rate dt) per interval); each is tier 2 (mass-casualty/major loss) with P = q2 = q2_max G(x_def - x_c + delta_2), else tier 1 (HF class)."
+    - "Visible losses: a Poisson process at rate r_root [pi_det q_v (1 - u_cl) + (u_cl - p_cl)] (a contained cluster is public only if detected, pi_det, and disclosed, q_v; an uncontainable non-fatal one is visible regardless; K ~ Poisson(rate dt) per interval); each is tier 2 (mass-casualty/major loss) with P = q2 = q2_max G(x_def - x_c + delta_2), else tier 1 (HF class)."
     - "Tier 1: Sal += 1 (after the dwell delay), unilateral pause with P = pi_uni. Tier 2: Sal += m2, Sal2 += 1, unilateral draw, binding jump R += (1 - (1 - e)^m2)(R_max - R) after L_nat years (the HF jump, size e, is pending at the start with probability p_bind_first)."
     - "Coordinated pause hazard pi0 + pi1 min(Sal2, sal2_sat), pi0 = -ln(race_persistence)/10, pi1 = -ln(1 - c_cap)/L_int; it lasts D_coord years and leaves R >= e. Tier-1 events do not raise it."
     - "Decay: R halves every tau_h, Sal and Sal2 every h_sal, unilateral restraint every h_uni_weeks."
@@ -72,6 +72,7 @@ mc:
     - "Scope of the defense ratio a: only the containment clock (u, dwell time, q2 and the threshold crossing); misuse, lock-in and strict-extinction progression use raw capability."
     - "The learning clock counts only clusters that left the path alive (survivor conditioning); r_max is a cap from the start (the rate starts at min(r0, r_max)); the HF binding response happens with probability p_bind_first instead of with certainty; the dwell-time exponent is capped before exponentiating."
     - "w1 keeps the tag [Assumption]; its prior is U(0.2, 1) under the saturating response (one undecayed HF-class loss raises the safety share x1.2-1.8 at the share_mult_max median, the review's proposed step was x1.5-2); no post-HF change in the share has been measured."
+    - "v0.3: a contained cluster becomes a public visible loss at the rate r_root pi_det q_v (1 - u_cl), because q0 is conditional on detection, as the learning clock already treated it; v0.2 omitted pi_det there, which overstated public visible losses by 1/pi_det. A human-nature parameter is \"inert in this model\" only if |effect| + 2 SE < 1 pp at every horizon (v0.2 used the point estimate alone); one below 1 pp but within 2 SE of it is \"small, not shown inert\"; the four E2-only parameters (phi_acc_max, delta_e2, phi_mis, phi_conc) are labelled E2 only instead of inert. No prior changed in v0.3; the rationales of g, L_open and R_max were reworded so that none cites a value its prior excludes or a refuted finding as established."
   constants:
     - name: "T0"
       value: 2026.5
@@ -362,8 +363,9 @@ mc:
     sign_check_parameters: ["r0", "g", "r_max", "w", "race_persistence", "lam_conc"]
     sign_check_racing: ["g", "r_max", "w", "race_persistence"]
     sign_check_values: "prior q01 and q99"
-    hn_effect_sweep: "every human-nature parameter at its prior q01 and q99, CRN on the first S1 draws; inert in this model = |dP(E1)| < 1 pp at 2035, 2050, 2100"
-    main_result_table: "S1 P(E1 by Y) and P(E2 by Y) for every output year, conditional on the e1 bins [1e-4, 1e-3), [1e-3, 1e-2), [1e-2, 1e-1), [1e-1, 0.5] (each row an average over e1 spread log-uniformly across the decade, not a point value), with prior mass, draw count and the accident / misuse + lock-in split at 2050 and 2100; and S1 P(E1) and P(E2) by 2035, 2050, 2100 at the point values e1 = 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3 (local means over the S1 draws within +/-0.15 decade, with draw count and SE; block 4b)"
+    hn_effect_sweep: "every human-nature parameter at its prior q01 and q99, CRN on the first S1 draws; inert in this model = |dP(E1)| + 2 SE < 1 pp at 2035, 2050, 2100; small = |dP(E1)| < 1 pp at every year but not inert"
+    e2_only_parameters: ["phi_acc_max", "delta_e2", "phi_mis", "phi_conc"]
+    main_result_table: "S1 P(E1 by Y) and P(E2 by Y) for every output year, conditional on the e1 bins [1e-4, 1e-3), [1e-3, 1e-2), [1e-2, 1e-1), [1e-1, 0.5] (each row an average over e1 spread log-uniformly across the decade, not a point value), with prior mass, draw count and the accident / misuse + lock-in split at 2050 and 2100; and S1 P(E1) and P(E2) by 2035, 2050, 2100 at the point values e1 = 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3 (local means over the S1 draws within +/-0.15 decade, with draw count and SE, and the accident / misuse + lock-in split at 2050 and 2100; block 4b)"
     conditional_tables: "S1 conditional on the s_regime, s_align and x_plateau terciles (block 4c)"
   safe_exit_calibration:
     anchor_per_year: [0.005, 0.01]
@@ -392,23 +394,25 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "uniform", lo: 0.3, hi: 0.8}
     effect:
-      dE1_pp_2035_2050_2100: [-6.68, -4.48, -3.33]
+      dE1_pp_2035_2050_2100: [-6.37, -4.46, -3.11]
+      se_pp_2035_2050_2100: [1.2, 1.0, 0.79]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "g"
     meaning: "initial growth rate (per year) of the root-cause cluster rate (ln2 = yearly doubling)"
     prior: {dist: "uniform", lo: 0.0, hi: 0.6931471805599453}
     tag: "[Assumption]"
     human_nature: true
-    rationale: "racing is the historical default (Szilard petition, Biopreparat, the 2023 pause letter); but the 2026 root events came from evaluation/RL programs with weakened safeguards, not deployed agents (no comparable case in ~481M Anthropic production transcripts), and the review's grounded prior put half its mass at 0 (F19) (sources: szilard, biopreparat, pause_letter_2023, anthropic_incidents)"
+    rationale: "racing is the historical default (Szilard petition, Biopreparat, the 2023 pause letter); but the 2026 root events came from evaluation/RL programs with weakened safeguards, not deployed agents (no comparable case in ~481M Anthropic production transcripts). The review's grounded prior put half its mass at g = 0 and half on U(0, 1) (F19, mean 0.25); this prior does not follow it: it has no point mass at 0 (P(g < 0.1) = 14%, mean 0.35), a judgement that racing keeps the rate growing, and S3's U(0, 0.2) is the low-growth case (sources: szilard, biopreparat, pause_letter_2023, anthropic_incidents)"
     overrides:
       S2: {dist: "point", value: 0.6931471805599453}
       S3: {dist: "uniform", lo: 0.0, hi: 0.2}
       S0: "set per S0 cell: e1 = p in {0.01, 0.05, 0.20}; g in {0, ln2}"
     effect:
-      dE1_pp_2035_2050_2100: [6.86, 7.75, 7.19]
+      dE1_pp_2035_2050_2100: [7.08, 8.04, 7.41]
+      se_pp_2035_2050_2100: [0.69, 0.69, 0.62]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "r_max"
     meaning: "cap on the root-cause cluster rate (per year) = programs running frontier agents with weakened safeguards x clusters per program-year; the rate starts at min(r0, r_max) and grows logistically toward r_max, so it never exceeds the cap"
     prior: {dist: "loguniform", lo: 5.0, hi: 60.0}
@@ -419,9 +423,10 @@ human_nature:
       S0: {dist: "point", value: 1000000000000.0}
       S2: {dist: "loguniform", lo: 30.0, hi: 300.0}
     effect:
-      dE1_pp_2035_2050_2100: [3.99, 7.44, 8.39]
+      dE1_pp_2035_2050_2100: [3.95, 7.3, 8.24]
+      se_pp_2035_2050_2100: [0.44, 0.66, 0.64]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "q0"
     meaning: "P(a detected, contained effective sub-incident is publicly disclosed and attributed); per cluster q_v = 1 - (1 - q0)^m_eff"
     prior: {dist: "beta", a: 2.0, b: 6.0}
@@ -431,9 +436,10 @@ human_nature:
     overrides:
       S0: {dist: "point", value: 0.0}
     effect:
-      dE1_pp_2035_2050_2100: [-5.71, -5.59, -5.55]
+      dE1_pp_2035_2050_2100: [-5.75, -5.55, -5.21]
+      se_pp_2035_2050_2100: [1.11, 0.92, 0.71]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "eta"
     meaning: "learning per acted-upon root-cause cluster: fraction of the remaining removable hazard closed (at the reference safety share)"
     prior: {dist: "beta", a: 1.0, b: 9.0}
@@ -445,9 +451,10 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "beta", a: 3.0, b: 7.0}
     effect:
-      dE1_pp_2035_2050_2100: [-19.15, -19.59, -17.77]
+      dE1_pp_2035_2050_2100: [-18.36, -18.69, -16.76]
+      se_pp_2035_2050_2100: [2.38, 1.99, 1.75]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "f_min"
     meaning: "learning floor: fraction of hazard learning never removes"
     prior: {dist: "uniform", lo: 0.0, hi: 0.2}
@@ -458,9 +465,10 @@ human_nature:
       S0: {dist: "point", value: 0.0}
       S3: {dist: "uniform", lo: 0.0, hi: 0.1}
     effect:
-      dE1_pp_2035_2050_2100: [4.99, 10.41, 13.96]
+      dE1_pp_2035_2050_2100: [5.34, 10.52, 13.98]
+      se_pp_2035_2050_2100: [1.26, 2.02, 2.19]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "w"
     meaning: "warning dismissal: P(a detected quiet near-miss produces no effective change)"
     prior: {dist: "beta", a: 4.0, b: 1.5}
@@ -472,9 +480,10 @@ human_nature:
       S2: {dist: "point", value: 1.0}
       S3: {dist: "beta", a: 1.5, b: 4.0}
     effect:
-      dE1_pp_2035_2050_2100: [1.49, 1.54, 1.15]
+      dE1_pp_2035_2050_2100: [1.5, 1.52, 1.14]
+      se_pp_2035_2050_2100: [0.21, 0.16, 0.12]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "safety_share"
     meaning: "share of frontier AI R&D effort on safety at baseline; scales eta and s_align as share/SIGMA_REF"
     prior: {dist: "uniform", lo: 0.02, hi: 0.1}
@@ -484,9 +493,10 @@ human_nature:
     overrides:
       S3: {dist: "uniform", lo: 0.08, hi: 0.25}
     effect:
-      dE1_pp_2035_2050_2100: [-8.36, -8.89, -9.07]
+      dE1_pp_2035_2050_2100: [-8.29, -8.5, -8.68]
+      se_pp_2035_2050_2100: [1.44, 1.14, 1.01]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "w1"
     meaning: "salience responsiveness of the safety share (one undecayed HF-class visible loss = 1 unit of salience): share = safety_share x [1 + (share_mult_max - 1)(1 - exp(-w1 Sal))]"
     prior: {dist: "uniform", lo: 0.2, hi: 1.0}
@@ -495,9 +505,10 @@ human_nature:
     rationale: "the review proposed a post-incident step of x1.5-2 per visible incident; at the share_mult_max median (2.25) one undecayed HF-class loss gives x1.2-1.8 over this prior; no post-HF change has been measured (Anthropic's ~150 engineers began moving to security in April 2026, before HF); both labs commissioned METR reviews and 1,134 lab employees signed a letter within 12 days (sources: anthropic_share, fortune_anthropic, metr_hf, pacing_letter)"
     overrides: {}
     effect:
-      dE1_pp_2035_2050_2100: [-1.17, -1.1, -0.92]
+      dE1_pp_2035_2050_2100: [-1.46, -1.14, -0.95]
+      se_pp_2035_2050_2100: [0.26, 0.19, 0.16]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "share_mult_max"
     meaning: "asymptotic multiple of the baseline safety share that accumulated salience can sustain (the saturation level of the salience response)"
     prior: {dist: "uniform", lo: 1.5, hi: 3.0}
@@ -507,9 +518,10 @@ human_nature:
     overrides:
       S3: {dist: "uniform", lo: 2.0, hi: 4.0}
     effect:
-      dE1_pp_2035_2050_2100: [-2.83, -3.15, -3.38]
+      dE1_pp_2035_2050_2100: [-2.93, -3.12, -3.25]
+      se_pp_2035_2050_2100: [0.58, 0.44, 0.42]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "s_effort_max"
     meaning: "largest multiple of s_align that a larger safety share can buy for the verified-alignment route (diminishing returns: verified alignment is bounded by the science, not only by effort)"
     prior: {dist: "uniform", lo: 1.0, hi: 5.0}
@@ -518,9 +530,10 @@ human_nature:
     rationale: "no data on the returns to safety effort; the one large pledge (20% of OpenAI compute for superalignment) was dissolved within ~10 months without a verified-alignment result; Anthropic's RSP v3 says evaluation science 'isn't well-developed enough to provide dispositive answers'; replaces a fixed cap of 3 in the first v0.2 draft (sources: superalignment, rsp_v3)"
     overrides: {}
     effect:
-      dE1_pp_2035_2050_2100: [-0.27, -1.19, -2.92]
+      dE1_pp_2035_2050_2100: [-0.26, -1.2, -2.91]
+      se_pp_2035_2050_2100: [0.06, 0.25, 0.47]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "m2"
     meaning: "salience of a mass-casualty / major-loss (tier-2) event in HF-class units: it adds m2 to Sal and its binding jump compounds the HF-sized jump e over m2 units, R += (1 - (1 - e)^m2)(R_max - R)"
     prior: {dist: "uniform", lo: 1.0, hi: 5.0}
@@ -529,9 +542,10 @@ human_nature:
     rationale: "tier-2 losses drew larger binding responses than near misses, but not always: the 737 MAX's first crash (189 dead) drew only an airworthiness directive and the second a worldwide grounding (~1 then several jump-equivalents); Exxon Valdez broke a 14-year legislative logjam; Bhopal -> EPCRA and Chernobyl -> WANO were moderate; Sverdlovsk (1979) drew none (salience suppressed); replaces U(3, 10), which saturated the jump (sources: max_grounding, opa90, epcra, wano, sverdlovsk, birkland)"
     overrides: {}
     effect:
-      dE1_pp_2035_2050_2100: [-2.1, -1.53, -1.56]
+      dE1_pp_2035_2050_2100: [-2.03, -1.64, -1.63]
+      se_pp_2035_2050_2100: [0.42, 0.23, 0.22]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "L_nat"
     meaning: "lag (years) from a record-setting visible loss to a binding national measure taking effect"
     prior: {dist: "lognormal", median: 0.75, sigma: 0.9}
@@ -541,9 +555,10 @@ human_nature:
     overrides:
       S3: {dist: "lognormal", median: 0.3, sigma: 0.8}
     effect:
-      dE1_pp_2035_2050_2100: [6.1, 2.69, 2.08]
+      dE1_pp_2035_2050_2100: [5.7, 2.89, 2.21]
+      se_pp_2035_2050_2100: [1.07, 0.52, 0.37]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "e"
     meaning: "response effect: fractional move toward R_max per HF-class binding jump (a tier-2 jump compounds it over m2 units)"
     prior: {dist: "beta", a: 2.0, b: 3.0}
@@ -555,23 +570,25 @@ human_nature:
       S2: {dist: "beta", a: 1.0, b: 4.0}
       S3: {dist: "beta", a: 4.0, b: 2.0}
     effect:
-      dE1_pp_2035_2050_2100: [-7.29, -6.83, -6.55]
+      dE1_pp_2035_2050_2100: [-7.32, -6.49, -6.4]
+      se_pp_2035_2050_2100: [1.2, 0.89, 0.7]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "R_max"
     meaning: "cap on the fraction of frontier activity any regime removes ('partial')"
     prior: {dist: "beta", a: 5.0, b: 2.0}
     tag: "[Inference]"
     human_nature: true
-    rationale: "races have usually continued; proactive halts (Montreal, Protocol IV, the GoF pause) involved few actors and no hot race (review F14, which claimed no raced technology was ever halted, was refuted); nuclear and aviation regimes regulate continuing activity; GovAI reads Anthropic's RSP v3 as having dropped its pause commitment (sources: montreal, blinding_lasers, gof_pause, ptbt, boeing_stats, rsp_v3, govai_rsp)"
+    rationale: "binding regimes have mostly removed part of an activity, not all of it: the PTBT banned only atmospheric, space and underwater tests, the GoF pause exempted 7 of 18 projects, and nuclear and aviation regimes regulate a continuing activity; a few regimes removed a whole technology before any mass-casualty event (Montreal for CFCs, Protocol IV for blinding lasers), so the prior keeps mass near 1 (P(R_max > 0.9) ~ 11%); these are among the counterexamples on which review F14 (no raced technology was ever halted before a visible mass-casualty event) was refuted; GovAI reads Anthropic's RSP v3 as having dropped its pause commitment (sources: ptbt, gof_p3co, boeing_stats, montreal, blinding_lasers, gof_pause, rsp_v3, govai_rsp)"
     overrides:
       S0: {dist: "point", value: 0.0}
       S2: {dist: "beta", a: 2.0, b: 5.0}
       S3: {dist: "beta", a: 6.0, b: 1.5}
     effect:
-      dE1_pp_2035_2050_2100: [-7.16, -8.4, -9.49]
+      dE1_pp_2035_2050_2100: [-6.6, -7.92, -9.06]
+      se_pp_2035_2050_2100: [1.04, 1.03, 1.03]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "tau_h"
     meaning: "half-life (years) of binding restraint"
     prior: {dist: "uniform", lo: 3.0, hi: 10.0}
@@ -582,9 +599,10 @@ human_nature:
       S2: {dist: "uniform", lo: 1.0, hi: 3.0}
       S3: {dist: "uniform", lo: 10.0, hi: 30.0}
     effect:
-      dE1_pp_2035_2050_2100: [-1.31, -1.93, -1.92]
+      dE1_pp_2035_2050_2100: [-1.64, -1.99, -2.07]
+      se_pp_2035_2050_2100: [0.39, 0.39, 0.29]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "beta_p"
     meaning: "additional effect of binding restraint on containment and lethality (classifiers, detection targets): restraint R always cuts the cluster rate by the full (1 - R) (pauses, release holds); in addition it multiplies uncontainability and the misuse hazard by (1 - beta_p R)"
     prior: {dist: "uniform", lo: 0.25, hi: 1.0}
@@ -594,9 +612,10 @@ human_nature:
     overrides:
       S0: {dist: "point", value: 0.0}
     effect:
-      dE1_pp_2035_2050_2100: [-3.75, -4.7, -5.12]
+      dE1_pp_2035_2050_2100: [-3.44, -4.3, -4.78]
+      se_pp_2035_2050_2100: [0.55, 0.58, 0.51]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "gamma_d"
     meaning: "fraction by which binding restraint slows capability growth"
     prior: {dist: "uniform", lo: 0.0, hi: 0.5}
@@ -608,10 +627,11 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "uniform", lo: 0.3, hi: 0.8}
     effect:
-      dE1_pp_2035_2050_2100: [-0.47, -0.4, -0.32]
-      class: "inert in this model"
+      dE1_pp_2035_2050_2100: [-0.42, -0.3, -0.23]
+      se_pp_2035_2050_2100: [0.31, 0.13, 0.1]
+      class: "small in this model, not shown inert"
       reason: "binding restraint slows capability growth only once it has built up (mean R is about 0.1-0.3 in 2028-2030, block 12), while the median path crosses its own threshold around 2029; slower growth also delays the alignment gate, which offsets part of the gain"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "h_sal"
     meaning: "half-life (years) of public/political salience after a visible loss"
     prior: {dist: "uniform", lo: 2.0, hi: 8.0}
@@ -620,10 +640,11 @@ human_nature:
     rationale: "Birkland's focusing-event window; the GoF pause lasted 3.2 yr; Three Mile Island's institutional effect (INPO) lasted decades (long tail) (sources: birkland, gof_pause, inpo)"
     overrides: {}
     effect:
-      dE1_pp_2035_2050_2100: [-0.31, -0.69, -0.71]
-      class: "inert in this model"
+      dE1_pp_2035_2050_2100: [-0.35, -0.7, -0.82]
+      se_pp_2035_2050_2100: [0.09, 0.18, 0.15]
+      class: "small in this model, not shown inert"
       reason: "the salience response of the safety share is at least 90% saturated during most of the at-risk time (block 12), so a longer salience memory adds little; tier-2 losses recur on most paths and renew it"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "pi_uni"
     meaning: "P(a lab pauses its own frontier activity after a salient incident)"
     prior: {dist: "beta", a: 3.0, b: 2.0}
@@ -633,10 +654,11 @@ human_nature:
     overrides:
       S0: {dist: "point", value: 0.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.31, -0.54, -0.37]
+      dE1_pp_2035_2050_2100: [-0.05, -0.33, -0.35]
+      se_pp_2035_2050_2100: [0.23, 0.09, 0.09]
       class: "inert in this model"
-      reason: "unilateral pauses last weeks (h_uni_weeks 2-8) and cut the aggregate cluster rate by only about 5% of at-risk time on average (block 12, mean unilateral rate cut); with per-incident learning a lower rate partly delays accidental hits instead of removing them"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      reason: "unilateral pauses last weeks (h_uni_weeks 2-8) and cut the aggregate cluster rate by only about 5% on average over the at-risk time (block 12, mean unilateral rate cut); with per-incident learning a lower rate partly delays accidental hits instead of removing them"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "e_uni"
     meaning: "unilateral cut of the aggregate incident rate per pause"
     prior: {dist: "beta", a: 2.0, b: 3.0}
@@ -646,10 +668,11 @@ human_nature:
     overrides:
       S0: {dist: "point", value: 0.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.33, -0.68, -0.68]
-      class: "inert in this model"
+      dE1_pp_2035_2050_2100: [-0.05, -0.59, -0.56]
+      se_pp_2035_2050_2100: [0.29, 0.21, 0.17]
+      class: "small in this model, not shown inert"
       reason: "same mechanism as pi_uni: unilateral pauses are short and cut the aggregate rate by only about 5% on average (block 12)"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "h_uni_weeks"
     meaning: "half-life (weeks) of unilateral restraint"
     prior: {dist: "uniform", lo: 2.0, hi: 8.0}
@@ -659,10 +682,11 @@ human_nature:
     overrides:
       S2: {dist: "uniform", lo: 1.0, hi: 3.0}
     effect:
-      dE1_pp_2035_2050_2100: [0.16, -0.11, -0.15]
+      dE1_pp_2035_2050_2100: [0.3, -0.13, -0.08]
+      se_pp_2035_2050_2100: [0.3, 0.14, 0.09]
       class: "inert in this model"
       reason: "same mechanism as pi_uni: even the longest unilateral half-life (8 weeks) is short against the decades over which the hazard accumulates"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "race_persistence"
     meaning: "P(no coordinated multi-lab/multi-state pause within 10 years when no mass-casualty or major loss (tier 2) occurs); pi0 = -ln(race_persistence)/10; tier-1 events such as HF do not raise the coordinated-pause hazard. How racing acts in this model: mainly through g and r_max (growth and cap of the incident rate) and w (dismissal of warnings); race_persistence sets only the proactive pause hazard pi0, which matters only before the first tier-2 loss, after which tier-2 salience (pi1) dominates the coordinated-pause hazard"
     prior: {dist: "beta", a: 9.0, b: 1.0}
@@ -674,10 +698,11 @@ human_nature:
       S2: {dist: "point", value: 1.0}
       S3: {dist: "beta", a: 2.0, b: 2.0}
     effect:
-      dE1_pp_2035_2050_2100: [0.51, 0.5, 0.41]
+      dE1_pp_2035_2050_2100: [0.52, 0.53, 0.44]
+      se_pp_2035_2050_2100: [0.13, 0.1, 0.08]
       class: "inert in this model"
-      reason: "it sets only the proactive coordinated-pause hazard pi0; in S1 tier-2 losses arrive early on most paths and drive the coordinated-pause hazard through pi1, so only about 4% of first coordinated pauses precede every tier-2 loss (block 12); racing acts in this model through g, r_max and w"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      reason: "it sets only the proactive coordinated-pause hazard pi0; in S1 tier-2 losses arrive early on most paths and drive the coordinated-pause hazard through pi1, so under 5% of first coordinated pauses precede every tier-2 loss (block 12); racing acts in this model through g, r_max and w"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "c_cap"
     meaning: "coordination capacity: P(a coordinated pause within L_int years while one mass-casualty or major loss is held undecayed); pi1 = -ln(1 - c_cap)/L_int per unit of tier-2 salience"
     prior: {dist: "uniform", lo: 0.3, hi: 0.6}
@@ -689,9 +714,10 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "uniform", lo: 0.6, hi: 0.9}
     effect:
-      dE1_pp_2035_2050_2100: [-0.91, -1.08, -1.34]
+      dE1_pp_2035_2050_2100: [-0.81, -1.08, -1.3]
+      se_pp_2035_2050_2100: [0.21, 0.26, 0.27]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "sal2_sat"
     meaning: "number of simultaneously undecayed mass-casualty/major losses beyond which further losses no longer raise the coordinated-pause hazard"
     prior: {dist: "uniform", lo: 1.0, hi: 4.0}
@@ -700,9 +726,10 @@ human_nature:
     rationale: "a second visible loss can shorten the lag sharply (737 MAX grounded 3 days after the second crash), but rivalry caps coordination: the nuclear arms race continued through Hiroshima, Nagasaki and the 1962 crisis, and Sverdlovsk (1979) produced no response (sources: max_grounding, ptbt, sverdlovsk)"
     overrides: {}
     effect:
-      dE1_pp_2035_2050_2100: [-0.32, -0.82, -1.2]
+      dE1_pp_2035_2050_2100: [-0.28, -0.9, -1.17]
+      se_pp_2035_2050_2100: [0.12, 0.23, 0.24]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "L_int"
     meaning: "characteristic time (years) to a binding multi-actor measure after a visible loss"
     prior: {dist: "lognormal", median: 3.0, sigma: 0.8}
@@ -712,9 +739,10 @@ human_nature:
     overrides:
       S3: {dist: "lognormal", median: 1.5, sigma: 0.6}
     effect:
-      dE1_pp_2035_2050_2100: [3.23, 4.39, 5.12]
+      dE1_pp_2035_2050_2100: [3.54, 4.25, 4.99]
+      se_pp_2035_2050_2100: [0.59, 0.64, 0.67]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "c_cov"
     meaning: "coverage of a coordinated pause: share of frontier growth, exposure and incidents actually halted"
     prior: {dist: "uniform", lo: 0.4, hi: 0.9}
@@ -724,9 +752,10 @@ human_nature:
     overrides:
       S3: {dist: "uniform", lo: 0.6, hi: 0.95}
     effect:
-      dE1_pp_2035_2050_2100: [-1.3, -1.92, -1.64]
+      dE1_pp_2035_2050_2100: [-1.36, -1.97, -1.7]
+      se_pp_2035_2050_2100: [0.35, 0.4, 0.33]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "D_coord"
     meaning: "duration (years) of a coordinated pause before it lapses into a decaying regime"
     prior: {dist: "lognormal", median: 1.5, sigma: 0.6}
@@ -736,9 +765,10 @@ human_nature:
     overrides:
       S3: {dist: "lognormal", median: 3.0, sigma: 0.6}
     effect:
-      dE1_pp_2035_2050_2100: [-1.97, -3.39, -4.02]
+      dE1_pp_2035_2050_2100: [-2.07, -3.33, -3.93]
+      se_pp_2035_2050_2100: [0.52, 0.54, 0.6]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "s_regime"
     meaning: "rate (per year) of entering a durable control equilibrium or deliberate halt (a governance regime that holds the risk at zero; safe absorbing state) with no binding restraint in force"
     prior: {dist: "lognormal", median: 0.003, sigma: 0.8}
@@ -750,9 +780,10 @@ human_nature:
       S2: {dist: "lognormal", median: 0.001, sigma: 0.9}
       S3: {dist: "lognormal", median: 0.006, sigma: 0.7}
     effect:
-      dE1_pp_2035_2050_2100: [-1.88, -5.44, -11.69]
+      dE1_pp_2035_2050_2100: [-1.92, -5.46, -11.65]
+      se_pp_2035_2050_2100: [0.27, 0.57, 0.94]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "s_halt"
     meaning: "hazard (per year) that a coordinated pause becomes a permanent halt or durable control regime (safe state) while in force"
     prior: {dist: "lognormal", median: 0.004, sigma: 1.0}
@@ -764,9 +795,10 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "lognormal", median: 0.015, sigma: 1.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.4, -1.85, -5.41]
+      dE1_pp_2035_2050_2100: [-0.35, -1.81, -5.28]
+      se_pp_2035_2050_2100: [0.1, 0.28, 0.61]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "kappa_s"
     meaning: "multiplier by which binding restraint raises the durable-regime rate: s_rg = s_regime (1 + kappa_s R) + s_halt [paused]"
     prior: {dist: "uniform", lo: 0.0, hi: 2.0}
@@ -778,9 +810,10 @@ human_nature:
       S2: {dist: "point", value: 0.0}
       S3: {dist: "uniform", lo: 0.5, hi: 2.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.16, -0.62, -1.63]
+      dE1_pp_2035_2050_2100: [-0.16, -0.62, -1.6]
+      se_pp_2035_2050_2100: [0.05, 0.11, 0.21]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "lam_mis"
     meaning: "asymptotic E1-level deliberate-misuse hazard at full capability (per year)"
     prior: {dist: "loguniform", lo: 0.0001, hi: 0.003}
@@ -793,9 +826,10 @@ human_nature:
       S2: {dist: "loguniform", lo: 0.005, hi: 0.05}
       S3: {dist: "loguniform", lo: 5.0e-05, hi: 0.0015}
     effect:
-      dE1_pp_2035_2050_2100: [0.71, 1.83, 3.57]
+      dE1_pp_2035_2050_2100: [0.7, 1.84, 3.58]
+      se_pp_2035_2050_2100: [0.05, 0.15, 0.37]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "lam_conc"
     meaning: "asymptotic power-concentration / lock-in hazard (per year) once a decisive advantage exists; gradual disempowerment folded in"
     prior: {dist: "loguniform", lo: 0.0001, hi: 0.0125}
@@ -808,9 +842,10 @@ human_nature:
       S2: {dist: "loguniform", lo: 0.005, hi: 0.05}
       S3: {dist: "loguniform", lo: 5.0e-05, hi: 0.00625}
     effect:
-      dE1_pp_2035_2050_2100: [1.29, 6.3, 13.2]
+      dE1_pp_2035_2050_2100: [1.3, 6.35, 13.21]
+      se_pp_2035_2050_2100: [0.1, 0.36, 0.82]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 300 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "c_conc"
     meaning: "sign-free coupling of binding restraint to the lock-in hazard: h_conc ~ max(0, 1 - c_conc R); negative = a partial regime raises lock-in risk"
     prior: {dist: "uniform", lo: -0.5, hi: 1.0}
@@ -821,9 +856,10 @@ human_nature:
       S2: {dist: "uniform", lo: -0.5, hi: 0.5}
       S3: {dist: "uniform", lo: 0.0, hi: 1.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.15, -0.97, -2.26]
+      dE1_pp_2035_2050_2100: [-0.15, -0.94, -2.17]
+      se_pp_2035_2050_2100: [0.06, 0.22, 0.46]
       class: "active"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
   - name: "p_bind_first"
     meaning: "P(the first visible loss, the HF incident, leads to a binding national measure at all); otherwise its binding jump is zero. Later tier-2 losses always produce a jump of size e compounded over m2"
     prior: {dist: "beta", a: 3.0, b: 2.0}
@@ -835,10 +871,11 @@ human_nature:
       S2: {dist: "beta", a: 2.0, b: 3.0}
       S3: {dist: "beta", a: 4.0, b: 1.0}
     effect:
-      dE1_pp_2035_2050_2100: [-0.95, -0.33, -0.19]
-      class: "inert in this model"
+      dE1_pp_2035_2050_2100: [-0.69, -0.17, -0.14]
+      se_pp_2035_2050_2100: [0.43, 0.22, 0.15]
+      class: "small in this model, not shown inert"
       reason: "only the HF binding jump depends on it; tier-2 losses produce their own binding jumps later on almost every S1 path (share of paths with a first binding measure, block 12), so whether HF itself binds matters only before the first tier-2 loss"
-      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| < 1 pp at every year"
+      how_measured: "P(E1 by Y) at the prior q99 minus at the q01, common random numbers on the first 80 S1 draws per side (seed 20261010); inert = |effect| + 2 SE < 1 pp at every year; small = |effect| < 1 pp at every year but not inert"
 
 # AI-nature, capability and channel parameters (21).
 priors:
@@ -972,7 +1009,7 @@ priors:
     prior: {dist: "uniform", lo: 0.25, hi: 1.0}
     tag: "[Assumption]"
     human_nature: false
-    rationale: "open-weight models trail the closed frontier by months (Epoch ~14 months [unverified]); HF's defenders used open-weight GLM-5.2 while the attacker ran a pre-release internal model; no measurement maps the lag to misuse capability (sources: reuters_glm, hf_timeline)"
+    rationale: "open-weight models trail the closed frontier by months; one estimate (Epoch, ~14 months [unverified]) lies above this prior's upper end of 12 months, so the prior assumes that misusers reach a given capability sooner than open weights do (through API access or leaked or stolen weights), an assumption with no measurement behind it; HF's defenders used open-weight GLM-5.2 while the attacker ran a pre-release internal model; no measurement maps the lag to misuse capability (sources: reuters_glm, hf_timeline)"
     overrides: {}
   - name: "phi_mis"
     meaning: "P(E2 | E1 via deliberate misuse)"
@@ -1035,7 +1072,7 @@ scenarios:
     draws: 3000
     switches: {}
   S1-side-high:
-    label: "S1 with the higher-hazard side-channel priors used before they were anchored to their cited ranges: lam_mis ~ LogU(0.0005, 0.02), lam_conc ~ LogU(0.001, 0.03), phi_mis ~ Beta(2, 2), L_conc ~ U(0, 1.76) (the former lock-in multiple ratio_conc ~ LogU(1, 30) read at the median d)"
+    label: "S1 with the former, higher-hazard side-channel priors (S1 replaced them by priors anchored to cited ranges, except the lam_conc upper end 1/80 per yr, which is a judgement): lam_mis ~ LogU(0.0005, 0.02), lam_conc ~ LogU(0.001, 0.03), phi_mis ~ Beta(2, 2), L_conc ~ U(0, 1.76) (the former lock-in multiple ratio_conc ~ LogU(1, 30) read at the median d)"
     override_key: "S1side"
     random_stream: "S1"
     draws: 1500
